@@ -11,7 +11,6 @@ An AI-Powered ATS (Applicant Tracking System) Resume Analyzer and Builder. This 
 ## Tech Stack
 - React 19
 - Vite
-- Tailwind CSS 4
 - Material UI
 - Emotion & Styled Components
 
