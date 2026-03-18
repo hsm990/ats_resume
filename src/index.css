@@ -1,0 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Syne+Mono&family=Instrument+Serif:ital@0;1&display=swap');
+@import "tailwindcss";
+
+
+:root {
+  /* Minimalist Dark Theme Colors */
+  --bg-primary: #f5f2ec;
+
+}
+
+
+
+body {
+  background-color: var(--bg-primary);
+  min-height: 100vh;
+}
+
+/* Base Form Elements */
+
+
+/* Base Buttons */
+/* Utility Classes */
