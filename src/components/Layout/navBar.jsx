@@ -43,6 +43,18 @@ export const Navbar = () => (
                 align-items: center;
                 justify-content: center;
             }
+
+            @media (max-width: 768px) {
+                .navbar {
+                    flex-direction: column;
+                    gap: 20px;
+                    padding: 16px 20px;
+                }
+                .navbar-links {
+                    flex-wrap: wrap;
+                    gap: 16px;
+                }
+            }
         `}</style>
         <nav className="navbar">
             <Link to="/" className="navbar-logo">

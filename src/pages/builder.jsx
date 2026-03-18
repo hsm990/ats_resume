@@ -609,6 +609,42 @@ CANDIDATE:
             .checklist-label { font-size: 14px; font-weight: 600; }
             .checklist-label.done  { color: var(--text-primary); }
             .checklist-label.empty { color: var(--text-secondary); font-weight: 400; }
+
+            /* Mobile Responsiveness */
+            @media (max-width: 900px) {
+                .builder-container {
+                    flex-direction: column;
+                    height: auto;
+                    overflow: visible;
+                }
+                .builder-left {
+                    width: 100%;
+                    height: auto;
+                    border-right: none;
+                    border-bottom: 2px solid var(--border-color);
+                    padding: 20px 10px;
+                }
+                .builder-left-content {
+                    width: 100%;
+                }
+                .builder-left ul {
+                    flex-wrap: wrap;
+                    gap: 15px;
+                }
+                .form-grid {
+                    display: flex;
+                    flex-direction: column;
+                }
+                .btn-submit, .btn-back {
+                    width: 100%;
+                }
+                .builder-right {
+                    width: 100%;
+                    height: auto;
+                    padding: 10px;
+                    overflow-x: auto;
+                }
+            }
             `}</style>
 
             <div className="builder-left">
