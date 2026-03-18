@@ -2,39 +2,44 @@ import { useState } from "react";
 import { useContext } from "react";
 import { InfoContext } from "../context/infoContext";
 import AccordionUsage from "../components/Layout/Accordion";
-import ResumeTemplate from "./ResumeTemplate";
+import ResumeTemplate from "../components/resume/ResumeTemplate";
 
-/* ─────────────────────────────────────────────
-   🔑 FREE GEMINI API KEY
-   Get yours at: https://aistudio.google.com
-   No credit card needed — 15 req/min free
-───────────────────────────────────────────── */
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-/* ─────────────────────────────────────────────
-   Gemini 3 Flash Preview — free API helper
-───────────────────────────────────────────── */
 const gemini = async (prompt) => {
-    const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`,
-        {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { temperature: 0.4, maxOutputTokens: 1024 }
-            })
-        }
-    );
+    if (import.meta.env.DEV && GEMINI_API_KEY) {
+        const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.4, maxOutputTokens: 1024 }
+                })
+            }
+        );
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
+        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+    }
+
+    const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+    });
+
     const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+    if (!res.ok) throw new Error(data.error || "Failed secure request to Vercel api");
+
+    return data.text;
 };
 
 const Builder = () => {
     const [activeStep, setActiveStep] = useState(1);
     const [errors, setErrors] = useState({});
-    const [aiLoading, setAiLoading] = useState({});   /* { key: bool } */
+    const [aiLoading, setAiLoading] = useState({});
 
     const {
         resumeInfo,
@@ -78,40 +83,29 @@ const Builder = () => {
 
     /* ── download ── */
     const handleDownload = () => {
-        // Step 1: Add a special print-only class to body to hide the builder UI
         document.body.classList.add('print-mode');
-        
-        // Step 2: Trigger native browser print dialog
         window.print();
-        
-        // Step 3: Remove the class after printing is initiated/cancelled
         setTimeout(() => {
             document.body.classList.remove('print-mode');
         }, 500);
     };
 
-    /* ════════════════════════════════════════
-       AI SUGGEST HANDLERS — Prompt Engineering
-    ════════════════════════════════════════ */
-
     const setLoading = (key, val) => setAiLoading(p => ({ ...p, [key]: val }));
 
-    /* ── 1. Experience description ── */
     const suggestExpDesc = async (exp) => {
         if (!exp.jobTitle && !exp.company) return alert("Fill in Job Title and Company first.");
         const key = `exp_${exp.id}`;
         setLoading(key, true);
         try {
             const text = await gemini(`
-You are an expert resume writer and technical recruiter. Your task is to write impact-driven bullet points for a candidate's work experience.
-The bullet points must sound highly professional and should focus on outcomes, technical skills applied, and typical responsibilities for this role.
+You are an expert resume writer and technical recruiter. Your task is to write impact-driven sentences for a candidate's work experience.
+The description must sound highly professional and should focus on outcomes, technical skills applied, and typical responsibilities for this role.
 
-Write EXACTLY 3 bullet points for the position below. Follow these rules STRICTLY:
-1. Format: Output plain text only. Provide EXACTLY 3 lines. DO NOT use bullet points (•), dashes, asterisks, or markdown. Each line should be a self-contained bullet point.
-2. Structure: Start every bullet point with a strong, past-tense action verb (e.g., Architected, Engineered, Spearheaded, Optimized, Streamlined, Resolved, Managed).
-3. Detail: Describe a realistic task, the tools/technologies used, and a realistic outcome or metric. For example: "Engineered a scalable RESTful API backend using Node.js and Express, improving data retrieval speeds by 20%."
-4. Completeness: Ensure every sentence is a FULL, COMPLETE thought and ends with a proper period. Do not under any circumstances leave a sentence unfinished.
-5. Length: Each bullet should be detailed, around 15-25 words.
+Write exactly 3 professional sentences describing the responsibilities and outcomes for this position.
+1. Provide exactly 3 lines, with each line being a complete sentence. DO NOT use bullet points (•), dashes, asterisks, or markdown.
+2. Structure: Start every sentence with a strong, past-tense action verb.
+3. Detail: Include realistic tools/technologies used and a realistic outcome.
+4. Completeness: Ensure every sentence is a FULL, COMPLETE thought and ends with a proper period.
 
 Position: ${exp.jobTitle} at ${exp.company}${exp.location ? `, ${exp.location}` : ""}
 Candidate Profile / Target Role: ${pi.jobTitle || "N/A"}
@@ -127,7 +121,32 @@ Candidate Profile / Target Role: ${pi.jobTitle || "N/A"}
         setLoading(key, false);
     };
 
-    /* ── 2. Technical skills ── */
+    const suggestEduDesc = async (edu) => {
+        if (!edu.degree && !edu.school) return alert("Fill in Degree and School first.");
+        const key = `edu_${edu.id}`;
+        setLoading(key, true);
+        try {
+            const text = await gemini(`
+You are an expert resume writer. Write a professional, impact-driven description for a candidate's education.
+Write exactly 2 complete sentences for the degree below.
+1. Output plain text only on two lines. DO NOT use bullet points (•), dashes, asterisks, or markdown.
+2. Ensure each sentence is a FULL, COMPLETE thought and ends with a proper period.
+3. Keep the tone professional and academic.
+
+Degree: ${edu.degree} from ${edu.school}${edu.location ? `, ${edu.location}` : ""}
+Candidate Profile: ${pi.jobTitle || "N/A"}
+`.trim());
+            const cleaned = text
+                .split("\n")
+                .map(l => l.replace(/^[\s\-•*\d.]+/, "").trim())
+                .filter(Boolean)
+                .slice(0, 2)
+                .join(" ");
+            updateEducation(edu.id, "description", cleaned);
+        } catch (e) { alert("AI error: " + e.message); }
+        setLoading(key, false);
+    };
+
     const suggestTechSkills = async () => {
         const key = "tech_skills";
         setLoading(key, true);
@@ -158,7 +177,6 @@ OUTPUT (comma-separated list only):
         setLoading(key, false);
     };
 
-    /* ── 3. Soft skills ── */
     const suggestSoftSkills = async () => {
         const key = "soft_skills";
         setLoading(key, true);
@@ -189,21 +207,19 @@ OUTPUT (comma-separated list only):
         setLoading(key, false);
     };
 
-    /* ── 4. Project description ── */
     const suggestProjDesc = async (proj) => {
         if (!proj.projectName) return alert("Fill in the Project Name first.");
         const key = `proj_${proj.id}`;
         setLoading(key, true);
         try {
             const text = await gemini(`
-You are an expert technical resume writer. Your task is to write compelling bullet points for a candidate's personal or academic project.
+You are an expert technical resume writer. Your task is to write compelling sentences for a candidate's personal or academic project.
 
-Write EXACTLY 2 bullet points for the project below. Follow these rules STRICTLY:
-1. Format: Output plain text only. Provide EXACTLY 2 lines. DO NOT use bullet points (•), dashes, asterisks, or markdown.
-2. Content (Bullet 1): Describe what the project actually is and what core technologies were used to build it. Start with a strong action verb (e.g., Developed, Architected).
-3. Content (Bullet 2): Describe a specific technical challenge solved, a prominent feature implemented, or a positive performance outcome. Ensure it is realistic.
-4. Completeness: Ensure every sentence is a FULL, COMPLETE thought and ends with a proper period. Do not under any circumstances leave a sentence unfinished.
-5. Length: Each bullet should be detailed, around 15-25 words.
+Write exactly 2 professional sentences describing the project below.
+1. Provide exactly 2 lines, with each line being a complete sentence. DO NOT use bullet points (•), dashes, asterisks, or markdown.
+2. Content (Sentence 1): Describe what the project is and the core technologies used.
+3. Content (Sentence 2): Describe a specific technical challenge solved or feature implemented.
+4. Completeness: Ensure every sentence is a FULL, COMPLETE thought and ends with a proper period.
 
 Project Name: ${proj.projectName}
 Link: ${proj.projectLink || "N/A"}
@@ -221,7 +237,6 @@ Candidate Skills: ${allSkills.slice(0, 8).join(", ") || "N/A"}
         setLoading(key, false);
     };
 
-    /* ── 5. Professional summary ── */
     const suggestSummary = async () => {
         setLoading("summary", true);
         try {
@@ -241,8 +256,7 @@ RULES:
 3. Sentence 3: A confident closing statement about the value they bring. Forward-looking, specific to their field.
 4. Total: 55–75 words, one paragraph
 5. Tone: Professional, confident, no "I" — start with their role or a descriptor
-6. BANNED words/phrases: passionate, results-driven, hard worker, team player, motivated, detail-oriented, dynamic, leverage, utilize, synergy
-7. Output: one paragraph of plain text only — no labels, no quotes, no bullet points, nothing else
+6. Output: one paragraph of plain text only — no labels, no quotes, no bullet points, nothing else
 
 CANDIDATE:
 - Job Title: ${pi.jobTitle || "N/A"}
@@ -256,7 +270,6 @@ CANDIDATE:
         setLoading("summary", false);
     };
 
-    /* ── Reusable AI button ── */
     const AiBtn = ({ loadKey, onClick, label = "✦ AI Suggest" }) => (
         <button
             type="button"
@@ -291,7 +304,7 @@ CANDIDATE:
             .builder-container {
                 height: 100vh;
                 width: 100%;
-                background-color: #fdfdfd;
+                background-color: var(--bg-primary);
                 display: flex;
                 font-family: 'Syne', sans-serif;
             }
@@ -300,14 +313,20 @@ CANDIDATE:
             .builder-left {
                 height: 100vh;
                 width: 55%;
-                background-color: #ffffff;
+                background-color: var(--bg-primary);
                 display: flex;
                 align-items: center;
                 justify-content: flex-start;
-                border-right: 1px solid #eee;
+                border-right: 1px solid var(--border-color);
                 padding-top: 40px;
                 flex-direction: column;
                 overflow-y: auto;
+            }
+
+            .builder-left textarea {
+                background-color: var(--bg-primary) !important;
+                color: var(--text-primary) !important;
+                border-color: var(--border-color) !important;
             }
 
             /* stepper */
@@ -324,14 +343,14 @@ CANDIDATE:
             .builder-left ul li {
                 font-size: 14px;
                 font-weight: 600;
-                color: #999;
+                color: var(--text-secondary);
                 position: relative;
                 cursor: pointer;
                 width: 105px;
                 display: flex;
                 justify-content: center;
             }
-            .builder-left ul li.active { color: #222; }
+            .builder-left ul li.active { color: var(--text-primary); }
             .builder-left ul:before {
                 content: "";
                 position: absolute;
@@ -339,7 +358,7 @@ CANDIDATE:
                 left: 0;
                 width: 100%;
                 height: 2px;
-                background-color: #e0e0e0;
+                background-color: var(--border-color);
             }
             .builder-left ul li:before {
                 content: "";
@@ -350,8 +369,8 @@ CANDIDATE:
                 width: 10px;
                 height: 10px;
                 border-radius: 50%;
-                background-color: #fff;
-                border: 2px solid #e0e0e0;
+                background-color: var(--bg-primary);
+                border: 2px solid var(--border-color);
                 z-index: 2;
                 transition: all 0.3s ease;
             }
@@ -390,10 +409,10 @@ CANDIDATE:
             .builder-left-content h1 {
                 font-size: 28px;
                 margin-bottom: 10px;
-                color: #1a1a1a;
+                color: var(--text-primary);
             }
             .builder-left-content p {
-                color: #666;
+                color: var(--text-secondary);
                 margin-bottom: 30px;
                 font-size: 14px;
             }
@@ -413,7 +432,7 @@ CANDIDATE:
                 text-transform: uppercase;
                 letter-spacing: 1px;
                 font-weight: 700;
-                color: #444;
+                color: var(--text-secondary);
                 display: flex;
                 align-items: center;
                 gap: 4px;
@@ -424,7 +443,7 @@ CANDIDATE:
                 line-height: 1;
             }
             .form-group label .opt {
-                color: #bbb;
+                color: var(--text-secondary);
                 font-size: 10px;
                 font-weight: 400;
                 text-transform: none;
@@ -432,14 +451,16 @@ CANDIDATE:
             }
             .form-group input {
                 padding: 12px 15px;
-                border: 1px solid #ddd;
+                border: 1px solid var(--border-color);
                 border-radius: 6px;
                 font-size: 15px;
                 font-family: 'Syne', sans-serif;
                 outline: none;
                 transition: border-color 0.2s, background 0.2s;
+                background-color: var(--bg-primary);
+                color: var(--text-primary);
             }
-            .form-group input:focus { border-color: #222; }
+            .form-group input:focus { border-color: var(--text-primary); }
             .form-group input.input-err {
                 border-color: #e84545;
                 background: #fff8f8;
@@ -465,8 +486,8 @@ CANDIDATE:
             .btn-submit {
                 margin-top: 30px;
                 padding: 15px 40px;
-                background-color: #222;
-                color: white;
+                background-color: var(--text-primary);
+                color: var(--bg-primary);
                 border: none;
                 border-radius: 4px;
                 font-weight: 600;
@@ -497,8 +518,8 @@ CANDIDATE:
                 gap: 10px;
                 width: 100%;
                 padding: 16px 0;
-                background: #111;
-                color: #fff;
+                background: var(--text-primary);
+                color: var(--bg-primary);
                 border: none;
                 border-radius: 6px;
                 font-size: 15px;
@@ -515,7 +536,7 @@ CANDIDATE:
             .builder-right {
                 height: 100vh;
                 width: 45%;
-                background-color: #555; /* Dark background to contrast the white paper */
+                background-color: #eee; /* Dark background to contrast the white paper */
                 display: flex;
                 align-items: flex-start;
                 justify-content: center;
@@ -583,14 +604,13 @@ CANDIDATE:
                 flex-shrink: 0;
                 transition: background 0.2s;
             }
-            .checklist-circle.done  { background: #222; color: #fff; }
-            .checklist-circle.empty { background: #eee; color: #bbb; }
+            .checklist-circle.done  { background: var(--text-primary); color: var(--bg-primary); }
+            .checklist-circle.empty { background: var(--border-color); color: var(--text-secondary); }
             .checklist-label { font-size: 14px; font-weight: 600; }
-            .checklist-label.done  { color: #111; }
-            .checklist-label.empty { color: #bbb; font-weight: 400; }
+            .checklist-label.done  { color: var(--text-primary); }
+            .checklist-label.empty { color: var(--text-secondary); font-weight: 400; }
             `}</style>
 
-            {/* ════════ LEFT ════════ */}
             <div className="builder-left">
                 <ul>
                     <li className={activeStep === 1 ? "active" : activeStep > 1 ? "done" : ""} onClick={() => setActiveStep(1)}>Personal Info</li>
@@ -605,7 +625,7 @@ CANDIDATE:
 
                 <div className="builder-left-content">
 
-                    {/* ══ STEP 1 — Personal Info (with validation) ══ */}
+                    {/* STEP 1 — Personal Info  */}
                     {activeStep === 1 && (
                         <>
                             <h1>Personal Details</h1>
@@ -715,7 +735,7 @@ CANDIDATE:
                         </>
                     )}
 
-                    {/* ══ STEP 2 — Experience ══ */}
+                    {/* STEP 2 — Experience  */}
                     {activeStep === 2 && (
                         <>
                             <h1>Experience</h1>
@@ -773,7 +793,7 @@ CANDIDATE:
                         </>
                     )}
 
-                    {/* ══ STEP 3 — Education ══ */}
+                    {/* STEP 3 — Education  */}
                     {activeStep === 3 && (
                         <>
                             <h1>Education</h1>
@@ -806,8 +826,11 @@ CANDIDATE:
                                                     <input type="date" value={edu.endDate} onChange={(e) => updateEducation(edu.id, "endDate", e.target.value)} />
                                                 </div>
                                                 <div className="form-group full-width">
-                                                    <label>Description</label>
-                                                    <textarea placeholder="e.g. Graduated with honors" style={{ height: "100px", padding: "12px 15px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "15px", outline: "none", transition: "border-color 0.2s" }} value={edu.description} onChange={(e) => updateEducation(edu.id, "description", e.target.value)} />
+                                                    <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                                        <span>Description</span>
+                                                        <AiBtn loadKey={`edu_${edu.id}`} onClick={() => suggestEduDesc(edu)} />
+                                                    </label>
+                                                    <textarea placeholder="e.g. Graduated with honors... or click ✦ AI Suggest" style={{ height: "100px", padding: "12px 15px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "15px", outline: "none", transition: "border-color 0.2s", resize: "vertical", fontFamily: "'Syne',sans-serif" }} value={edu.description} onChange={(e) => updateEducation(edu.id, "description", e.target.value)} />
                                                 </div>
                                             </form>
                                         </AccordionUsage>
@@ -821,7 +844,7 @@ CANDIDATE:
                         </>
                     )}
 
-                    {/* ══ STEP 4 — Skills ══ */}
+                    {/* STEP 4 — Skills  */}
                     {activeStep === 4 && (
                         <>
                             <h1>Skills</h1>
@@ -855,7 +878,7 @@ CANDIDATE:
                         </>
                     )}
 
-                    {/* ══ STEP 5 — Projects ══ */}
+                    {/* STEP 5 — Projects  */}
                     {activeStep === 5 && (
                         <>
                             <h1>Projects</h1>
@@ -900,7 +923,7 @@ CANDIDATE:
                         </>
                     )}
 
-                    {/* ══ STEP 6 — Languages ══ */}
+                    {/* STEP 6 — Languages  */}
                     {activeStep === 6 && (
                         <>
                             <h1>Languages</h1>
@@ -932,14 +955,14 @@ CANDIDATE:
                         </>
                     )}
 
-                    {/* ══ STEP 7 — Summary ══ */}
+                    {/* STEP 7 — Summary  */}
                     {activeStep === 7 && (
                         <>
                             <h1>Summary</h1>
                             <p>Add your summary.</p>
                             <div style={{ marginBottom: "20px" }}>
                                 <div className="form-group full-width">
-                                    {/* ── Summary label + AI Suggest ── */}
+                                    {/* ── Summary  + AI Suggest ── */}
                                     <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                                         <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700, color: "#444" }}>Summary</span>
                                         <AiBtn loadKey="summary" onClick={suggestSummary} label="✦ AI Write Summary" />
@@ -959,7 +982,7 @@ CANDIDATE:
                         </>
                     )}
 
-                    {/* ══ STEP 8 — Finalize & Download ══ */}
+                    {/* STEP 8 —  Download  */}
                     {activeStep === 8 && (
                         <>
                             <h1>Your CV is Ready!</h1>
@@ -997,7 +1020,7 @@ CANDIDATE:
                 </div>
             </div>
 
-            {/* ════════ RIGHT — CV PREVIEW ════════ */}
+            {/* RIGHT — CV PREVIEW  */}
             <div className="builder-right">
                 <ResumeTemplate
                     personalInfo={resumeInfo.personalInfo}

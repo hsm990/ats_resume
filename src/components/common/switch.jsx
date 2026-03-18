@@ -1,11 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 const Switch = () => {
+  const [isDark, setIsDark] = useState(() => {
+    return document.body.classList.contains('dark');
+  });
+
+  const toggleTheme = () => {
+    setIsDark(!isDark);
+  };
+
+  useEffect(() => {
+    if (isDark) {
+      document.body.classList.add('dark');
+    } else {
+      document.body.classList.remove('dark');
+    }
+  }, [isDark]);
+
   return (
-    <StyledWrapper onClick={() => console.log("aze")} >
+    <StyledWrapper>
       <label className="switch">
-        <input defaultChecked="true" id="checkbox" type="checkbox" />
+        <input checked={isDark} onChange={toggleTheme} id="checkbox" type="checkbox" />
         <span className="slider">
           <div className="star star_1" />
           <div className="star star_2" />

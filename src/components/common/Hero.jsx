@@ -32,7 +32,7 @@ const Hero = () => {
           font-size: clamp(56px, 6.5vw, 92px);
           line-height: 0.95;
           letter-spacing: -3px;
-          color: #1a1a1a;
+          color: var(--text-primary);
           margin-bottom: 8px;
           font-family: 'Syne', sans-serif;
             }
@@ -45,7 +45,7 @@ const Hero = () => {
           }
 
           .hero h1.hero-title-outline {
-          -webkit-text-stroke: 2px #1a1a1a;
+          -webkit-text-stroke: 2px var(--text-primary);
           color: transparent;
           margin-bottom: 25px;
           }
@@ -70,14 +70,14 @@ const Hero = () => {
               transition: all 0.4s ease-in-out;
             }
               .button.first:hover {
-                background-color: black;
-                color: white;
+                background-color: var(--text-primary);
+                color: var(--bg-primary);
               }
  
 
             .button.second {
-             border:1px solid black;
-             color:black;
+             border:1px solid var(--text-primary);
+             color:var(--text-primary);
              background-color: transparent;
              position:relative;
             }
@@ -88,7 +88,7 @@ const Hero = () => {
             top:0;
             width:0;
             height:100%;
-            background-color:black;
+            background-color:var(--text-primary);
             z-index:-1;
             transition: all 0.4s ease-in-out;
             }
@@ -97,7 +97,7 @@ const Hero = () => {
               height:100%;
             }
               .button.second:hover{
-                color:white;
+                color:var(--bg-primary);
               }
     `}</style>
       <div className="hero">
@@ -108,7 +108,7 @@ const Hero = () => {
         <h1>THE JOB.</h1>
         <div className="button-container">
           <Link to="/builder"><button className="button first"><span >✦ Build My Resume</span> </button></Link>
-          <button className="button second">✦ Analyze My Resume</button>
+          <button className="button second" onClick={() => alert("Coming Soon!")}>✦ Analyze My Resume</button>
         </div>
       </div>
     </>

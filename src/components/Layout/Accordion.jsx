@@ -13,7 +13,7 @@ export default function AccordionUsage({ children, title }) {
                     aria-controls="panel1-content"
                     id="panel1-header"
                 >
-                    <Typography component="span">{title}</Typography>
+                    <Typography component="span" style={{ fontSize: "21px" }}>{title}</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
                     {children}

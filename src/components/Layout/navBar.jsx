@@ -1,16 +1,61 @@
 import { Link } from "react-router-dom";
-import Switch from "../switch";
+import Switch from "../common/switch";
 import logo from "../../assets/logo.png"
+
 export const Navbar = () => (
-    <nav className="flex w-full pl-20 pr-20 justify-center gap-32 items-center border-b border-gray-200 py-4">
-        <Link to="/" className="font-bold text-2xl"><img src={logo} alt="" style={{ width: "100px", height: "50px" }} /></Link>
-        <div className="flex gap-4 items-center justify-center">
-            <Link to="/how-it-works" className="font-serif text-[#797979] hover:text-[#1a1a1a] transition-colors text-xl">How it works</Link>
-            <Link to="/who-we-are" className="font-serif text-[#797979] hover:text-[#1a1a1a] transition-colors text-xl">Who we are</Link>
-            <Link to="/contact-us" className="font-serif text-[#797979] hover:text-[#1a1a1a] transition-colors text-xl">Contact us</Link>
-        </div>
-        <div className="flex gap-4 items-center justify-center">
-            <Switch />
-        </div>
-    </nav>
+    <>
+        <style>{`
+            .navbar {
+                display: flex;
+                width: 100%;
+                padding: 16px 80px;
+                justify-content: center;
+                gap: 128px;
+                align-items: center;
+                border-bottom: 1px solid var(--border-color, #e5e7eb);
+                background-color: var(--bg-primary);
+                transition: background-color 0.3s ease, border-color 0.3s ease;
+            }
+            .navbar-logo {
+                font-weight: 700;
+                font-size: 24px;
+            }
+            .navbar-links {
+                display: flex;
+                gap: 24px;
+                align-items: center;
+                justify-content: center;
+            }
+            .navbar-link {
+                font-family: 'Instrument Serif', serif;
+                color: var(--text-secondary);
+                font-size: 21px;
+                transition: color 0.3s ease;
+                text-decoration: none;
+                font-weight: 500;
+            }
+            .navbar-link:hover {
+                color: var(--text-primary);
+            }
+            .navbar-actions {
+                display: flex;
+                gap: 16px;
+                align-items: center;
+                justify-content: center;
+            }
+        `}</style>
+        <nav className="navbar">
+            <Link to="/" className="navbar-logo">
+                <img src={logo} alt="Logo" style={{ width: "100px", height: "50px" }} />
+            </Link>
+            <div className="navbar-links">
+                <Link to="/how-it-works" className="navbar-link">How it works</Link>
+                <Link to="/who-we-are" className="navbar-link">Who we are</Link>
+                <Link to="/contact-us" className="navbar-link">Contact us</Link>
+            </div>
+            <div className="navbar-actions">
+                <Switch />
+            </div>
+        </nav>
+    </>
 );

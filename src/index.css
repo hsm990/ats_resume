@@ -3,20 +3,32 @@
 
 
 :root {
-  /* Minimalist Dark Theme Colors */
   --bg-primary: #f5f2ec;
-
+  --text-primary: #1a1a1a;
+  --text-secondary: #666;
+  --border-color: #ddd;
 }
 
-
+body.dark {
+  --bg-primary: #1a1a1a;
+  --text-primary: #f5f2ec;
+  --text-secondary: #aaa;
+  --border-color: #444;
+}
 
 body {
   background-color: var(--bg-primary);
+  color: var(--text-primary);
   min-height: 100vh;
 }
 
-/* Base Form Elements */
 
+.MuiPaper-root.MuiAccordion-root {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
 
-/* Base Buttons */
-/* Utility Classes */
+.MuiSvgIcon-root {
+  color: var(--text-primary) !important;
+}

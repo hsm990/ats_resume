@@ -182,12 +182,10 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
                     <div className="cv-empty">Preview will appear here</div>
                 ) : (
                     <>
-                        {/* ── HEADER ── */}
                         <div style={{ textAlign: "center", marginBottom: "12px" }}>
                             <h1 className="cv-name" style={{ fontSize: "24px", marginBottom: "4px" }}>{pi.fullName || "Your Name"}</h1>
                             {pi.jobTitle && <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}>{pi.jobTitle}</div>}
 
-                            {/* ATS Friendly Contact Line with Pipes */}
                             <div style={{ fontSize: "11.5px", color: "#111", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "6px" }}>
                                 {pi.address && <span>{pi.address}</span>}
                                 {pi.address && pi.email && <span>|</span>}
@@ -207,7 +205,7 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
                                 <p className="cv-summary">{sum}</p>
                             </section>
                         )}
-
+                        {/* Professional Experience */}
                         {exps.length > 0 && (
                             <section className="cv-section">
                                 <h2 className="cv-section-title">Professional Experience</h2>
@@ -231,7 +229,7 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
                                 ))}
                             </section>
                         )}
-
+                        {/* Education */}
                         {edus.length > 0 && (
                             <section className="cv-section">
                                 <h2 className="cv-section-title">Education</h2>
