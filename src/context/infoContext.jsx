@@ -22,6 +22,10 @@ const Info = {
     summary: "",
     projects: [],
     languages: [],
+    certifications: [],
+    awards: [],
+    references: [],
+    customSections: [],
 };
 
 export const InfoProvider = ({ children }) => {
@@ -155,6 +159,42 @@ export const InfoProvider = ({ children }) => {
         }));
     };
 
+    const addCertification = () => {
+        setResumeInfo(prev => ({
+            ...prev,
+            certifications: [...prev.certifications, { id: Date.now(), name: "", issuer: "", date: "" }]
+        }));
+    };
+    const removeCertification = (id) => setResumeInfo(prev => ({ ...prev, certifications: prev.certifications.filter(c => c.id !== id) }));
+    const updateCertification = (id, field, value) => setResumeInfo(prev => ({ ...prev, certifications: prev.certifications.map(c => c.id === id ? { ...c, [field]: value } : c) }));
+
+    const addAward = () => {
+        setResumeInfo(prev => ({
+            ...prev,
+            awards: [...prev.awards, { id: Date.now(), title: "", awarder: "", date: "", description: "" }]
+        }));
+    };
+    const removeAward = (id) => setResumeInfo(prev => ({ ...prev, awards: prev.awards.filter(a => a.id !== id) }));
+    const updateAward = (id, field, value) => setResumeInfo(prev => ({ ...prev, awards: prev.awards.map(a => a.id === id ? { ...a, [field]: value } : a) }));
+
+    const addReference = () => {
+        setResumeInfo(prev => ({
+            ...prev,
+            references: [...prev.references, { id: Date.now(), name: "", position: "", company: "", contactInfo: "" }]
+        }));
+    };
+    const removeReference = (id) => setResumeInfo(prev => ({ ...prev, references: prev.references.filter(r => r.id !== id) }));
+    const updateReference = (id, field, value) => setResumeInfo(prev => ({ ...prev, references: prev.references.map(r => r.id === id ? { ...r, [field]: value } : r) }));
+
+    const addCustomSection = () => {
+        setResumeInfo(prev => ({
+            ...prev,
+            customSections: [...prev.customSections, { id: Date.now(), sectionTitle: "", description: "" }]
+        }));
+    };
+    const removeCustomSection = (id) => setResumeInfo(prev => ({ ...prev, customSections: prev.customSections.filter(c => c.id !== id) }));
+    const updateCustomSection = (id, field, value) => setResumeInfo(prev => ({ ...prev, customSections: prev.customSections.map(c => c.id === id ? { ...c, [field]: value } : c) }));
+
     return (
         <InfoContext.Provider value={{
             resumeInfo,
@@ -173,7 +213,11 @@ export const InfoProvider = ({ children }) => {
             updateProject,
             addLanguage,
             removeLanguage,
-            updateLanguage
+            updateLanguage,
+            addCertification, removeCertification, updateCertification,
+            addAward, removeAward, updateAward,
+            addReference, removeReference, updateReference,
+            addCustomSection, removeCustomSection, updateCustomSection
         }}>
             {children}
         </InfoContext.Provider>

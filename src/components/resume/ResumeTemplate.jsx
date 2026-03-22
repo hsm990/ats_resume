@@ -1,4 +1,4 @@
-const ResumeTemplate = ({ personalInfo, experience, education, skills, projects, languages, summary }) => {
+const ResumeTemplate = ({ personalInfo, experience, education, skills, projects, languages, summary, certifications, awards, references, customSections }) => {
 
     const pi = personalInfo || {};
     const exps = experience || [];
@@ -6,6 +6,10 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
     const skls = skills || { technicalSkills: "", softSkills: "" };
     const prjs = projects || [];
     const lngs = languages || [];
+    const certs = certifications || [];
+    const awrds = awards || [];
+    const refs = references || [];
+    const custs = customSections || [];
     const sum = summary || "";
     const technicalSkills = (skls.technicalSkills || "").split(",").map(x => x.trim()).filter(Boolean);
     const softSkills = (skls.softSkills || "").split(",").map(x => x.trim()).filter(Boolean);
@@ -22,7 +26,7 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
         return text.split("\n").map(l => l.replace(/^[\s\-•*]+/, "").trim()).filter(Boolean);
     };
 
-    const isEmpty = !pi.fullName && exps.length === 0 && !sum;
+    const isEmpty = !pi.fullName && exps.length === 0 && !sum && certs.length === 0 && awrds.length === 0 && refs.length === 0 && custs.length === 0 && edus.length === 0 && prjs.length === 0 && lngs.length === 0;
 
     return (
         <>
@@ -38,7 +42,6 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
                     color: #111;
                     font-size: 11.5px;
                     line-height: 1.45;
-                    overflow: hidden;
                     word-wrap: break-word;
                     overflow-wrap: break-word;
                     box-sizing: border-box;
@@ -299,6 +302,65 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
                                             <strong>{l.languageName}</strong> {l.languageProficiency ? `(${l.languageProficiency})` : ""}
                                             {i < lngs.length - 1 ? ", " : ""}
                                         </span>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {certs.length > 0 && (
+                            <section className="cv-section">
+                                <h2 className="cv-section-title">Certifications</h2>
+                                {certs.map(c => (
+                                    <div className="cv-proj-block" key={c.id}>
+                                        <div className="cv-proj-name" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>{c.name}</span>
+                                            {c.date && <span style={{ fontWeight: 'normal', fontStyle: 'italic' }}>{c.date}</span>}
+                                        </div>
+                                        {c.issuer && <div className="cv-proj-link">{c.issuer}</div>}
+                                    </div>
+                                ))}
+                            </section>
+                        )}
+
+                        {awrds.length > 0 && (
+                            <section className="cv-section">
+                                <h2 className="cv-section-title">Awards</h2>
+                                {awrds.map(a => (
+                                    <div className="cv-proj-block" key={a.id}>
+                                        <div className="cv-proj-name" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                            <span>{a.title}</span>
+                                            {a.date && <span style={{ fontWeight: 'normal', fontStyle: 'italic' }}>{a.date}</span>}
+                                        </div>
+                                        {a.awarder && <div className="cv-proj-link">{a.awarder}</div>}
+                                        {a.description && <div className="cv-skills-category">{a.description}</div>}
+                                    </div>
+                                ))}
+                            </section>
+                        )}
+
+                        {custs.length > 0 && custs.map(c => (
+                            <section className="cv-section" key={c.id}>
+                                <h2 className="cv-section-title">{c.sectionTitle}</h2>
+                                {c.description && (
+                                    <ul className="cv-list">
+                                        {toBullets(c.description).map((line, i) => (
+                                            <li key={i}>{line}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </section>
+                        ))}
+
+                        {refs.length > 0 && (
+                            <section className="cv-section">
+                                <h2 className="cv-section-title">References</h2>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+                                    {refs.map(r => (
+                                        <div key={r.id} style={{ flexBasis: '45%' }}>
+                                            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{r.name}</div>
+                                            {r.position && <div style={{ fontSize: '11px', fontStyle: 'italic' }}>{r.position}{r.company ? `, ${r.company}` : ''}</div>}
+                                            {r.contactInfo && <div style={{ fontSize: '11px' }}>{r.contactInfo}</div>}
+                                        </div>
                                     ))}
                                 </div>
                             </section>

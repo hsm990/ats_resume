@@ -60,11 +60,11 @@ export const Navbar = () => (
             <Link to="/" className="navbar-logo">
                 <img src={logo} alt="Logo" style={{ width: "100px", height: "50px" }} />
             </Link>
-            <div className="navbar-links">
+            {/* <div className="navbar-links">
                 <Link to="/how-it-works" className="navbar-link">How it works</Link>
                 <Link to="/who-we-are" className="navbar-link">Who we are</Link>
                 <Link to="/contact-us" className="navbar-link">Contact us</Link>
-            </div>
+            </div> */}
             <div className="navbar-actions">
                 <Switch />
             </div>

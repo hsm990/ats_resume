@@ -3,6 +3,8 @@ import { useContext } from "react";
 import { InfoContext } from "../context/infoContext";
 import AccordionUsage from "../components/Layout/Accordion";
 import ResumeTemplate from "../components/resume/ResumeTemplate";
+import ResumePDFTemplate from "../components/resume/ResumePDFTemplate";
+import { PDFDownloadLink } from "@react-pdf/renderer";
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -50,6 +52,10 @@ const Builder = () => {
         updateSummary,
         addProject, removeProject, updateProject,
         addLanguage, removeLanguage, updateLanguage,
+        addCertification, removeCertification, updateCertification,
+        addAward, removeAward, updateAward,
+        addReference, removeReference, updateReference,
+        addCustomSection, removeCustomSection, updateCustomSection,
     } = useContext(InfoContext);
 
     const pi = resumeInfo.personalInfo || {};
@@ -80,17 +86,6 @@ const Builder = () => {
         return Object.keys(newErrors).length === 0;
     };
     const clearError = (field) => setErrors(prev => ({ ...prev, [field]: null }));
-
-    /* ── download ── */
-    const handleDownload = () => {
-        document.body.classList.add('print-mode');
-        window.print();
-        setTimeout(() => {
-            document.body.classList.remove('print-mode');
-        }, 500);
-    };
-
-    const setLoading = (key, val) => setAiLoading(p => ({ ...p, [key]: val }));
 
     const suggestExpDesc = async (exp) => {
         if (!exp.jobTitle && !exp.company) return alert("Fill in Job Title and Company first.");
@@ -359,6 +354,7 @@ CANDIDATE:
                 width: 100%;
                 height: 2px;
                 background-color: var(--border-color);
+
             }
             .builder-left ul li:before {
                 content: "";
@@ -547,7 +543,6 @@ CANDIDATE:
                 padding: 40px;
             }
 
-            /* Print Mode (ATS Friendly PDF) */
             @media print {
                 @page {
                     size: A4 portrait;
@@ -558,30 +553,12 @@ CANDIDATE:
                     padding: 0;
                     background: white;
                 }
-                body * {
-                    visibility: hidden;
-                }
-                .builder-right, .builder-right * {
-                    visibility: visible;
-                }
-                .builder-right {
-                    position: absolute;
-                    left: 0;
-                    top: 0;
-                    width: 100vw;
-                    height: 100vh;
-                    padding: 0;
-                    margin: 0;
-                    background: white;
-                    overflow: visible;
-                    display: block;
-                }
                 .cv-paper {
                     box-shadow: none !important;
                     margin: 0 !important;
-                    padding: 10mm 15mm !important; /* Proper internal spacing for printing */
-                    width: 210mm !important; /* Exact A4 width */
-                    height: 297mm !important; /* Exact A4 height */
+                    padding: 10mm 15mm !important;
+                    width: 210mm !important;
+                    height: 297mm !important;
                     box-sizing: border-box;
                     page-break-after: avoid;
                     page-break-before: avoid;
@@ -629,7 +606,7 @@ CANDIDATE:
                 }
                 .builder-left ul {
                     flex-wrap: wrap;
-                    gap: 15px;
+                    gap: 30px;
                 }
                 .form-grid {
                     display: flex;
@@ -776,7 +753,7 @@ CANDIDATE:
                         <>
                             <h1>Experience</h1>
                             <p>Add your work experience.</p>
-                            <span style={{ display: "block", color: "blue", cursor: "pointer", textDecoration: "underline" }} onClick={() => addExperience()}>+Add Experience</span>
+                            <span style={{ display: "block", width: "fit-content", color: "blue", cursor: "pointer", textDecoration: "underline" }} onClick={() => addExperience()}>+Add Experience</span>
 
                             {resumeInfo.experience.map((exp) => (
                                 <>
@@ -1018,11 +995,11 @@ CANDIDATE:
                         </>
                     )}
 
-                    {/* STEP 8 —  Download  */}
+                    {/* STEP 8 — Finalize & Additional Sections */}
                     {activeStep === 8 && (
                         <>
                             <h1>Your CV is Ready!</h1>
-                            <p>Review your resume on the right, then download it as a PDF.</p>
+                            <p>Review your resume on the right, then download it as a PDF. You can also add optional sections below.</p>
 
                             <div style={{ marginBottom: 28 }}>
                                 {[
@@ -1043,11 +1020,98 @@ CANDIDATE:
                                 ))}
                             </div>
 
-                            <button className="btn-download" onClick={handleDownload}>
-                                ↓ Download PDF
-                            </button>
+                            <PDFDownloadLink
+                                document={<ResumePDFTemplate
+                                    personalInfo={resumeInfo.personalInfo}
+                                    experience={resumeInfo.experience}
+                                    education={resumeInfo.education}
+                                    skills={resumeInfo.skills}
+                                    projects={resumeInfo.projects}
+                                    languages={resumeInfo.languages}
+                                    certifications={resumeInfo.certifications}
+                                    awards={resumeInfo.awards}
+                                    references={resumeInfo.references}
+                                    customSections={resumeInfo.customSections}
+                                    summary={resumeInfo.summary}
+                                />}
+                                fileName={pi.fullName ? `${pi.fullName.replace(/\s+/g, '_')}_Resume.pdf` : "resume.pdf"}
+                                className="btn-download"
+                                style={{ textDecoration: 'none' }}
+                            >
+                                {({ loading }) => (loading ? 'Preparing Document...' : '↓ Download PDF')}
+                            </PDFDownloadLink>
 
-                            <div className="form-group full-width" style={{ display: "flex", marginTop: 0 }}>
+                            <hr style={{ margin: "40px 0", borderTop: "1px solid #ddd" }} />
+
+                            <h2 style={{ fontSize: "20px" }}>Additional Sections <span style={{ fontSize: "14px", fontWeight: "400", color: "#666" }}>(Optional)</span></h2>
+                            <p>Enhance your resume by adding certifications, awards, references, or custom sections.</p>
+
+                            {/* Certifications */}
+                            <h3 style={{ marginTop: 20, marginBottom: 10, borderBottom: "1px solid #ddd", paddingBottom: 5 }}>Certifications</h3>
+                            <span style={{ display: "block", color: "blue", cursor: "pointer", textDecoration: "underline", marginBottom: 15 }} onClick={() => addCertification()}>+Add Certification</span>
+                            {resumeInfo.certifications.map((cert) => (
+                                <div key={cert.id} style={{ marginBottom: "20px" }}>
+                                    <span style={{ display: "flex", justifyContent: "right", color: "red", cursor: "pointer", textDecoration: "underline", fontSize: "12px", zIndex: "100" }} onClick={() => removeCertification(cert.id)}>Remove Certification</span>
+                                    <AccordionUsage title={`${cert.name || "Certification Name"} | ${cert.issuer || "Issuer"}`}>
+                                        <form className="form-grid">
+                                            <div className="form-group"><label>Certification Name</label><input type="text" placeholder="e.g. AWS Certified Solutions Architect" value={cert.name} onChange={(e) => updateCertification(cert.id, "name", e.target.value)} /></div>
+                                            <div className="form-group"><label>Issuer</label><input type="text" placeholder="e.g. Amazon Web Services" value={cert.issuer} onChange={(e) => updateCertification(cert.id, "issuer", e.target.value)} /></div>
+                                            <div className="form-group"><label>Date / Year</label><input type="text" placeholder="e.g. 2023" value={cert.date} onChange={(e) => updateCertification(cert.id, "date", e.target.value)} /></div>
+                                        </form>
+                                    </AccordionUsage>
+                                </div>
+                            ))}
+
+                            {/* Awards */}
+                            <h3 style={{ marginTop: 30, marginBottom: 10, borderBottom: "1px solid #ddd", paddingBottom: 5 }}>Awards & Achievements</h3>
+                            <span style={{ display: "block", color: "blue", cursor: "pointer", textDecoration: "underline", marginBottom: 15 }} onClick={() => addAward()}>+Add Award</span>
+                            {resumeInfo.awards.map((award) => (
+                                <div key={award.id} style={{ marginBottom: "20px" }}>
+                                    <span style={{ display: "flex", justifyContent: "right", color: "red", cursor: "pointer", textDecoration: "underline", fontSize: "12px", zIndex: "100" }} onClick={() => removeAward(award.id)}>Remove Award</span>
+                                    <AccordionUsage title={`${award.title || "Award Title"} | ${award.awarder || "Organization"}`}>
+                                        <form className="form-grid">
+                                            <div className="form-group"><label>Award Title</label><input type="text" placeholder="e.g. Employee of the Month" value={award.title} onChange={(e) => updateAward(award.id, "title", e.target.value)} /></div>
+                                            <div className="form-group"><label>Organization / Issuer</label><input type="text" placeholder="e.g. Google" value={award.awarder} onChange={(e) => updateAward(award.id, "awarder", e.target.value)} /></div>
+                                            <div className="form-group"><label>Date / Year</label><input type="text" placeholder="e.g. 2022" value={award.date} onChange={(e) => updateAward(award.id, "date", e.target.value)} /></div>
+                                            <div className="form-group full-width"><label>Description</label><textarea style={{ padding: "12px 15px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "15px", outline: "none", fontFamily: "'Syne', sans-serif" }} placeholder="Briefly describe the award" value={award.description} onChange={(e) => updateAward(award.id, "description", e.target.value)} /></div>
+                                        </form>
+                                    </AccordionUsage>
+                                </div>
+                            ))}
+
+                            {/* References */}
+                            <h3 style={{ marginTop: 30, marginBottom: 10, borderBottom: "1px solid #ddd", paddingBottom: 5 }}>References</h3>
+                            <span style={{ display: "block", color: "blue", cursor: "pointer", textDecoration: "underline", marginBottom: 15 }} onClick={() => addReference()}>+Add Reference</span>
+                            {resumeInfo.references.map((ref) => (
+                                <div key={ref.id} style={{ marginBottom: "20px" }}>
+                                    <span style={{ display: "flex", justifyContent: "right", color: "red", cursor: "pointer", textDecoration: "underline", fontSize: "12px", zIndex: "100" }} onClick={() => removeReference(ref.id)}>Remove Reference</span>
+                                    <AccordionUsage title={`${ref.name || "Reference Name"} | ${ref.company || "Company"}`}>
+                                        <form className="form-grid">
+                                            <div className="form-group"><label>Full Name</label><input type="text" placeholder="e.g. Jane Doe" value={ref.name} onChange={(e) => updateReference(ref.id, "name", e.target.value)} /></div>
+                                            <div className="form-group"><label>Job Title</label><input type="text" placeholder="e.g. Senior Manager" value={ref.position} onChange={(e) => updateReference(ref.id, "position", e.target.value)} /></div>
+                                            <div className="form-group"><label>Company</label><input type="text" placeholder="e.g. Acme Corp" value={ref.company} onChange={(e) => updateReference(ref.id, "company", e.target.value)} /></div>
+                                            <div className="form-group"><label>Contact Info</label><input type="text" placeholder="e.g. jane@example.com / +12345" value={ref.contactInfo} onChange={(e) => updateReference(ref.id, "contactInfo", e.target.value)} /></div>
+                                        </form>
+                                    </AccordionUsage>
+                                </div>
+                            ))}
+
+                            {/* Custom Sections */}
+                            <h3 style={{ marginTop: 30, marginBottom: 10, borderBottom: "1px solid #ddd", paddingBottom: 5 }}>Custom Section</h3>
+                            <span style={{ display: "block", color: "blue", cursor: "pointer", textDecoration: "underline", marginBottom: 15 }} onClick={() => addCustomSection()}>+Add Custom Section</span>
+                            {resumeInfo.customSections.map((sec) => (
+                                <div key={sec.id} style={{ marginBottom: "20px" }}>
+                                    <span style={{ display: "flex", justifyContent: "right", color: "red", cursor: "pointer", textDecoration: "underline", fontSize: "12px", zIndex: "100" }} onClick={() => removeCustomSection(sec.id)}>Remove Section</span>
+                                    <AccordionUsage title={`${sec.sectionTitle || "Custom Section Title"}`}>
+                                        <form className="form-grid">
+                                            <div className="form-group full-width"><label>Section Title</label><input type="text" placeholder="e.g. Publications, Volunteering" value={sec.sectionTitle} onChange={(e) => updateCustomSection(sec.id, "sectionTitle", e.target.value)} /></div>
+                                            <div className="form-group full-width"><label>Description / Details</label><textarea style={{ height: "100px", padding: "12px 15px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "15px", outline: "none", fontFamily: "'Syne', sans-serif" }} placeholder="List details separated by new lines for bullets" value={sec.description} onChange={(e) => updateCustomSection(sec.id, "description", e.target.value)} /></div>
+                                        </form>
+                                    </AccordionUsage>
+                                </div>
+                            ))}
+
+                            <div className="form-group full-width" style={{ display: "flex", marginTop: "30px" }}>
                                 <button type="button" className="btn-back" style={{ width: "100%" }} onClick={() => setActiveStep(7)}>← Back</button>
                             </div>
                         </>
@@ -1056,17 +1120,22 @@ CANDIDATE:
                 </div>
             </div>
 
-            {/* RIGHT — CV PREVIEW  */}
             <div className="builder-right">
-                <ResumeTemplate
-                    personalInfo={resumeInfo.personalInfo}
-                    experience={resumeInfo.experience}
-                    education={resumeInfo.education}
-                    skills={resumeInfo.skills}
-                    projects={resumeInfo.projects}
-                    languages={resumeInfo.languages}
-                    summary={resumeInfo.summary}
-                />
+                <div style={{ transform: "scale(0.85)", transformOrigin: "top center", marginBottom: "-40mm" }}>
+                    <ResumeTemplate
+                        personalInfo={resumeInfo.personalInfo}
+                        experience={resumeInfo.experience}
+                        education={resumeInfo.education}
+                        skills={resumeInfo.skills}
+                        projects={resumeInfo.projects}
+                        languages={resumeInfo.languages}
+                        certifications={resumeInfo.certifications}
+                        awards={resumeInfo.awards}
+                        references={resumeInfo.references}
+                        customSections={resumeInfo.customSections}
+                        summary={resumeInfo.summary}
+                    />
+                </div>
             </div>
         </div>
     );
