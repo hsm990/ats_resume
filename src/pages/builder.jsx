@@ -86,6 +86,7 @@ const Builder = () => {
         return Object.keys(newErrors).length === 0;
     };
     const clearError = (field) => setErrors(prev => ({ ...prev, [field]: null }));
+    const setLoading = (key, val) => setAiLoading(prev => ({ ...prev, [key]: val }));
 
     const suggestExpDesc = async (exp) => {
         if (!exp.jobTitle && !exp.company) return alert("Fill in Job Title and Company first.");
