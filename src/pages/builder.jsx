@@ -42,6 +42,7 @@ const Builder = () => {
     const [activeStep, setActiveStep] = useState(1);
     const [errors, setErrors] = useState({});
     const [aiLoading, setAiLoading] = useState({});
+    const [selectedTemplate, setSelectedTemplate] = useState('template1');
 
     const {
         resumeInfo,
@@ -1021,6 +1022,13 @@ CANDIDATE:
                                 ))}
                             </div>
 
+                            <h3 style={{ fontSize: "16px", marginTop: 20, marginBottom: 15 }}>Select Template</h3>
+                            <div style={{ display: 'flex', gap: '15px', marginBottom: '30px', flexWrap: 'wrap' }}>
+                                <button type="button" onClick={() => setSelectedTemplate('template1')} style={{ padding: '12px 24px', border: selectedTemplate === 'template1' ? '2px solid #e84545' : '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', background: selectedTemplate === 'template1' ? '#fff0f0' : 'white', fontWeight: 600, transition: 'all 0.2s', fontFamily: "'Syne', sans-serif" }}>Classic</button>
+                                <button type="button" onClick={() => setSelectedTemplate('template2')} style={{ padding: '12px 24px', border: selectedTemplate === 'template2' ? '2px solid #e84545' : '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', background: selectedTemplate === 'template2' ? '#fff0f0' : 'white', fontWeight: 600, transition: 'all 0.2s', fontFamily: "'Syne', sans-serif" }}>Modern (Blue)</button>
+                                <button type="button" onClick={() => setSelectedTemplate('template3')} style={{ padding: '12px 24px', border: selectedTemplate === 'template3' ? '2px solid #e84545' : '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', background: selectedTemplate === 'template3' ? '#fff0f0' : 'white', fontWeight: 600, transition: 'all 0.2s', fontFamily: "'Syne', sans-serif", letterSpacing: '1px' }}>MINIMALIST</button>
+                            </div>
+
                             <PDFDownloadLink
                                 document={<ResumePDFTemplate
                                     personalInfo={resumeInfo.personalInfo}
@@ -1034,6 +1042,8 @@ CANDIDATE:
                                     references={resumeInfo.references}
                                     customSections={resumeInfo.customSections}
                                     summary={resumeInfo.summary}
+                                    resumeLanguage={resumeInfo.resumeLanguage}
+                                    templateId={selectedTemplate}
                                 />}
                                 fileName={pi.fullName ? `${pi.fullName.replace(/\s+/g, '_')}_Resume.pdf` : "resume.pdf"}
                                 className="btn-download"
@@ -1135,6 +1145,8 @@ CANDIDATE:
                         references={resumeInfo.references}
                         customSections={resumeInfo.customSections}
                         summary={resumeInfo.summary}
+                        resumeLanguage={resumeInfo.resumeLanguage}
+                        templateId={selectedTemplate}
                     />
                 </div>
             </div>

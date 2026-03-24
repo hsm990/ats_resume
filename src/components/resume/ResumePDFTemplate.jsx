@@ -1,32 +1,63 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Link } from '@react-pdf/renderer';
 
-const styles = StyleSheet.create({
-    page: { padding: '20mm', fontFamily: 'Times-Roman', fontSize: 11.5, lineHeight: 1.45, color: '#111' },
-    header: { textAlign: 'center', marginBottom: 12 },
-    name: { fontSize: 24, fontFamily: 'Times-Bold', marginBottom: 4 },
-    jobTitle: { fontSize: 14, fontFamily: 'Times-Bold', marginBottom: 8 },
-    contactRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
-    contactItem: { marginHorizontal: 3 },
-    section: { marginTop: 14 },
-    sectionTitle: { fontSize: 13.5, fontFamily: 'Times-Bold', borderBottomWidth: 1.5, borderBottomColor: '#000', paddingBottom: 2, marginBottom: 8, textTransform: 'uppercase' },
-    summary: { textAlign: 'justify' },
-    expBlock: { marginBottom: 12 },
-    expRole: { fontSize: 12, fontFamily: 'Times-Bold', marginBottom: 2 },
-    expMeta: { flexDirection: 'row', justifyContent: 'space-between', fontFamily: 'Times-Italic', marginBottom: 6 },
-    boldLabel: { fontFamily: 'Times-Bold', fontStyle: 'normal' },
-    bulletRow: { flexDirection: 'row', marginBottom: 3, paddingLeft: 18 },
-    bulletText: { flex: 1, textAlign: 'justify' },
-    eduBlock: { marginBottom: 10 },
-    eduDegreeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
-    eduDegree: { fontSize: 12, fontFamily: 'Times-Bold' },
-    skillsRow: { marginBottom: 4 },
-    projBlock: { marginBottom: 10 },
-    projName: { fontSize: 12, fontFamily: 'Times-Bold', marginBottom: 2 },
-    projLink: { fontSize: 11, fontFamily: 'Times-Italic', marginBottom: 4 },
-});
 
-const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projects, languages, summary, certifications, awards, references, customSections }) => {
+
+const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projects, languages, summary, certifications, awards, references, customSections, resumeLanguage, templateId = 'template1' }) => {
+    
+    const getFontFamily = (tId) => tId === 'template2' ? 'Helvetica' : tId === 'template3' ? 'Courier' : 'Times-Roman';
+    const getBoldFontFamily = (tId) => tId === 'template2' ? 'Helvetica-Bold' : tId === 'template3' ? 'Courier-Bold' : 'Times-Bold';
+    const getItalicFontFamily = (tId) => tId === 'template2' ? 'Helvetica-Oblique' : tId === 'template3' ? 'Courier-Oblique' : 'Times-Italic';
+    const getPrimaryColor = (tId) => tId === 'template2' ? '#1e3a8a' : '#000000';
+    const getSecondaryColor = (tId) => tId === 'template2' ? '#475569' : '#111111';
+
+    const styles = React.useMemo(() => StyleSheet.create({
+        page: { padding: '20mm', fontFamily: getFontFamily(templateId), fontSize: 11.5, lineHeight: 1.45, color: '#111' },
+        header: { textAlign: 'center', marginBottom: 12 },
+        name: { 
+            fontSize: 24, 
+            fontFamily: getBoldFontFamily(templateId), 
+            marginBottom: 4, 
+            color: getPrimaryColor(templateId),
+            textTransform: templateId === 'template2' ? 'uppercase' : 'none',
+            borderBottomWidth: templateId === 'template3' ? 2 : 0,
+            borderBottomColor: '#333',
+            paddingBottom: templateId === 'template3' ? 4 : 0
+        },
+        jobTitle: { fontSize: 14, fontFamily: getBoldFontFamily(templateId), marginBottom: 8, color: getSecondaryColor(templateId) },
+        contactRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
+        contactItem: { marginHorizontal: 3 },
+        section: { marginTop: 14 },
+        sectionTitle: { 
+            fontSize: 13.5, 
+            fontFamily: getBoldFontFamily(templateId), 
+            borderBottomWidth: templateId === 'template3' ? 1 : 1.5, 
+            borderBottomColor: templateId === 'template3' ? '#666' : getPrimaryColor(templateId), 
+            borderStyle: templateId === 'template3' ? 'dashed' : 'solid',
+            color: getPrimaryColor(templateId),
+            paddingBottom: 2, 
+            marginBottom: 8, 
+            textTransform: 'uppercase' 
+        },
+        summary: { textAlign: 'justify' },
+        expBlock: { marginBottom: 12 },
+        expRole: { fontSize: 12, fontFamily: getBoldFontFamily(templateId), marginBottom: 2 },
+        expMeta: { flexDirection: 'row', justifyContent: 'space-between', fontFamily: getItalicFontFamily(templateId), marginBottom: 6 },
+        boldLabel: { fontFamily: getBoldFontFamily(templateId), fontStyle: 'normal' },
+        bulletRow: { flexDirection: 'row', marginBottom: 3, paddingLeft: 18 },
+        bulletText: { flex: 1, textAlign: 'justify' },
+        eduBlock: { marginBottom: 10 },
+        eduDegreeRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
+        eduDegree: { fontSize: 12, fontFamily: getBoldFontFamily(templateId) },
+        skillsRow: { marginBottom: 4 },
+        projBlock: { marginBottom: 10 },
+        projName: { fontSize: 12, fontFamily: getBoldFontFamily(templateId), marginBottom: 2 },
+        projLink: { fontSize: 11, fontFamily: getItalicFontFamily(templateId), marginBottom: 4 },
+    }), [templateId]);
+
+    const textFR = { summary: "Résumé Professionnel", experience: "Expérience Professionnelle", education: "Éducation", skills: "Compétences", technicalSkills: "Compétences techniques:", softSkills: "Compétences interpersonnelles:", projects: "Projets", languages: "Langues", certifications: "Certifications", awards: "Prix", references: "Références" };
+    const textEN = { summary: "Professional Summary", experience: "Professional Experience", education: "Education", skills: "Skills", technicalSkills: "Technical Skills:", softSkills: "Soft Skills:", projects: "Projects", languages: "Languages", certifications: "Certifications", awards: "Awards", references: "References" };
+    const t = resumeLanguage === 'fr' ? textFR : textEN;
     const pi = personalInfo || {};
     const exps = experience || [];
     const edus = education || [];
@@ -80,14 +111,14 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
 
                 {sum && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Professional Summary</Text>
+                        <Text style={styles.sectionTitle}>{t.summary}</Text>
                         <Text style={styles.summary}>{sum}</Text>
                     </View>
                 )}
 
                 {exps.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Professional Experience</Text>
+                        <Text style={styles.sectionTitle}>{t.experience}</Text>
                         {exps.map(e => (
                             <View style={styles.expBlock} key={e.id}>
                                 <Text style={styles.expRole}>{e.jobTitle}</Text>
@@ -108,7 +139,7 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
 
                 {edus.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Education</Text>
+                        <Text style={styles.sectionTitle}>{t.education}</Text>
                         {edus.map(e => (
                             <View style={styles.eduBlock} key={e.id}>
                                 <View style={styles.eduDegreeRow}>
@@ -126,19 +157,19 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
 
                 {(technicalSkills.length > 0 || softSkills.length > 0) && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Skills</Text>
+                        <Text style={styles.sectionTitle}>{t.skills}</Text>
                         {technicalSkills.length > 0 && (
-                            <Text style={styles.skillsRow}><Text style={styles.boldLabel}>Technical Skills: </Text>{technicalSkills.join(", ")}</Text>
+                            <Text style={styles.skillsRow}><Text style={styles.boldLabel}>{t.technicalSkills} </Text>{technicalSkills.join(", ")}</Text>
                         )}
                         {softSkills.length > 0 && (
-                            <Text style={styles.skillsRow}><Text style={styles.boldLabel}>Soft Skills: </Text>{softSkills.join(", ")}</Text>
+                            <Text style={styles.skillsRow}><Text style={styles.boldLabel}>{t.softSkills} </Text>{softSkills.join(", ")}</Text>
                         )}
                     </View>
                 )}
 
                 {prjs.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Projects</Text>
+                        <Text style={styles.sectionTitle}>{t.projects}</Text>
                         {prjs.map(pr => (
                             <View style={styles.projBlock} key={pr.id}>
                                 <Text style={styles.projName}>
@@ -158,7 +189,7 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
 
                 {lngs.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Languages</Text>
+                        <Text style={styles.sectionTitle}>{t.languages}</Text>
                         <Text style={styles.skillsRow}>
                             {lngs.map((l, i) => (
                                 <React.Fragment key={l.id}>
@@ -172,7 +203,7 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
 
                 {certs.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Certifications</Text>
+                        <Text style={styles.sectionTitle}>{t.certifications}</Text>
                         {certs.map(c => (
                             <View style={styles.projBlock} key={c.id}>
                                 <Text style={styles.projName}>
@@ -187,7 +218,7 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
 
                 {awrds.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Awards</Text>
+                        <Text style={styles.sectionTitle}>{t.awards}</Text>
                         {awrds.map(a => (
                             <View style={styles.projBlock} key={a.id}>
                                 <Text style={styles.projName}>
@@ -215,7 +246,7 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
 
                 {refs.length > 0 && (
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>References</Text>
+                        <Text style={styles.sectionTitle}>{t.references}</Text>
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 20 }}>
                             {refs.map((r, i) => (
                                 <View key={r.id} style={{ width: '45%', marginBottom: 8 }}>

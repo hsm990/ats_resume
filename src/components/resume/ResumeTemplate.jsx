@@ -1,4 +1,7 @@
-const ResumeTemplate = ({ personalInfo, experience, education, skills, projects, languages, summary, certifications, awards, references, customSections }) => {
+const ResumeTemplate = ({ personalInfo, experience, education, skills, projects, languages, summary, certifications, awards, references, customSections, resumeLanguage, templateId = 'template1' }) => {
+    const textFR = { summary: "Résumé Professionnel", experience: "Expérience Professionnelle", education: "Éducation", skills: "Compétences", technicalSkills: "Compétences techniques:", softSkills: "Compétences interpersonnelles:", projects: "Projets", languages: "Langues", certifications: "Certifications", awards: "Prix", references: "Références" };
+    const textEN = { summary: "Professional Summary", experience: "Professional Experience", education: "Education", skills: "Skills", technicalSkills: "Technical Skills:", softSkills: "Soft Skills:", projects: "Projects", languages: "Languages", certifications: "Certifications", awards: "Awards", references: "References" };
+    const t = resumeLanguage === 'fr' ? textFR : textEN;
 
     const pi = personalInfo || {};
     const exps = experience || [];
@@ -38,7 +41,6 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
                     background: #ffffff;
                     padding: 20mm;
                     box-shadow: 0 1px 18px rgba(0,0,0,.10);
-                    font-family: 'Times New Roman', Times, Georgia, serif;
                     color: #111;
                     font-size: 11.5px;
                     line-height: 1.45;
@@ -46,21 +48,26 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
                     overflow-wrap: break-word;
                     box-sizing: border-box;
                     margin: 0 auto;
+                    ${templateId === 'template2' ? `font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;` : ''}
+                    ${templateId === 'template3' ? `font-family: 'Courier New', Courier, monospace; letter-spacing: -0.2px;` : ''}
+                    ${templateId === 'template1' || !templateId ? `font-family: 'Times New Roman', Times, Georgia, serif;` : ''}
                 }
 
                 /* Header */
                 .cv-name {
                     font-size: 19px;
                     font-weight: 700;
-                    color: #000;
                     margin: 0 0 1px;
                     line-height: 1.15;
+                    ${templateId === 'template2' ? `color: #1e3a8a; text-transform: uppercase; font-weight: 800;` : 'color: #000;'}
+                    ${templateId === 'template3' ? `color: #333; letter-spacing: 1.5px; border-bottom: 2px solid #333; padding-bottom: 4px;` : ''}
                 }
                 .cv-job-title {
                     font-size: 12px;
                     font-weight: 700;
                     color: #111;
                     margin: 0 0 4px;
+                    ${templateId === 'template2' ? `color: #475569; font-size: 13px;` : ''}
                 }
                 .cv-header-row1 {
                     display: flex;
@@ -86,11 +93,12 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
                 .cv-section h2.cv-section-title {
                     font-size: 13.5px;
                     font-weight: 700;
-                    color: #000;
-                    border-bottom: 1.5px solid #000;
                     padding-bottom: 2px;
                     margin: 0 0 8px 0;
                     text-transform: uppercase;
+                    ${templateId === 'template2' ? `border-bottom: 2px solid #1e3a8a; color: #1e3a8a;` : ''}
+                    ${templateId === 'template3' ? `border-bottom: 1px dashed #666; color: #222;` : ''}
+                    ${templateId === 'template1' || !templateId ? `border-bottom: 1.5px solid #000; color: #000;` : ''}
                 }
 
                 /* Summary */
@@ -204,14 +212,14 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
 
                         {sum && (
                             <section className="cv-section">
-                                <h2 className="cv-section-title">Professional Summary</h2>
+                                <h2 className="cv-section-title">{t.summary}</h2>
                                 <p className="cv-summary">{sum}</p>
                             </section>
                         )}
                         {/* Professional Experience */}
                         {exps.length > 0 && (
                             <section className="cv-section">
-                                <h2 className="cv-section-title">Professional Experience</h2>
+                                <h2 className="cv-section-title">{t.experience}</h2>
                                 {exps.map(e => (
                                     <div className="cv-exp-block" key={e.id}>
                                         <div className="cv-exp-role">{e.jobTitle || "Position Title"}</div>
@@ -235,7 +243,7 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
                         {/* Education */}
                         {edus.length > 0 && (
                             <section className="cv-section">
-                                <h2 className="cv-section-title">Education</h2>
+                                <h2 className="cv-section-title">{t.education}</h2>
                                 {edus.map(e => (
                                     <div className="cv-edu-block" key={e.id}>
                                         <div className="cv-edu-degree">
@@ -257,15 +265,15 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
 
                         {(technicalSkills.length > 0 || softSkills.length > 0) && (
                             <section className="cv-section">
-                                <h2 className="cv-section-title">Skills</h2>
+                                <h2 className="cv-section-title">{t.skills}</h2>
                                 {technicalSkills.length > 0 && (
                                     <div className="cv-skills-category">
-                                        <strong>Technical Skills:</strong> {technicalSkills.join(", ")}
+                                        <strong>{t.technicalSkills}</strong> {technicalSkills.join(", ")}
                                     </div>
                                 )}
                                 {softSkills.length > 0 && (
                                     <div className="cv-skills-category">
-                                        <strong>Soft Skills:</strong> {softSkills.join(", ")}
+                                        <strong>{t.softSkills}</strong> {softSkills.join(", ")}
                                     </div>
                                 )}
                             </section>
@@ -274,7 +282,7 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
                         {/* ── PROJECTS ── */}
                         {prjs.length > 0 && (
                             <section className="cv-section">
-                                <h2 className="cv-section-title">Projects</h2>
+                                <h2 className="cv-section-title">{t.projects}</h2>
                                 {prjs.map(pr => (
                                     <div className="cv-proj-block" key={pr.id}>
                                         <div className="cv-proj-name">
@@ -295,7 +303,7 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
 
                         {lngs.length > 0 && (
                             <section className="cv-section">
-                                <h2 className="cv-section-title">Languages</h2>
+                                <h2 className="cv-section-title">{t.languages}</h2>
                                 <div className="cv-skills-category">
                                     {lngs.map((l, i) => (
                                         <span key={l.id}>
@@ -309,7 +317,7 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
 
                         {certs.length > 0 && (
                             <section className="cv-section">
-                                <h2 className="cv-section-title">Certifications</h2>
+                                <h2 className="cv-section-title">{t.certifications}</h2>
                                 {certs.map(c => (
                                     <div className="cv-proj-block" key={c.id}>
                                         <div className="cv-proj-name" style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -324,7 +332,7 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
 
                         {awrds.length > 0 && (
                             <section className="cv-section">
-                                <h2 className="cv-section-title">Awards</h2>
+                                <h2 className="cv-section-title">{t.awards}</h2>
                                 {awrds.map(a => (
                                     <div className="cv-proj-block" key={a.id}>
                                         <div className="cv-proj-name" style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -353,7 +361,7 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
 
                         {refs.length > 0 && (
                             <section className="cv-section">
-                                <h2 className="cv-section-title">References</h2>
+                                <h2 className="cv-section-title">{t.references}</h2>
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
                                     {refs.map(r => (
                                         <div key={r.id} style={{ flexBasis: '45%' }}>

@@ -3,6 +3,8 @@ import './App.css';
 import { Navbar } from './components/Layout/navBar';
 import Home from './pages/Home';
 import Builder from './pages/builder';
+import Jobs from './pages/Jobs';
+import SkillRecommendations from './pages/SkillRecommendations';
 import { InfoProvider } from './context/infoContext';
 
 
@@ -15,8 +17,9 @@ function App() {
           <Navbar />
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/analyzer" element={<Home />} />
+            <Route path="/jobs" element={<Jobs />} />
             <Route path="/builder" element={<Builder />} />
+            <Route path="/skill-recommendations" element={<SkillRecommendations />} />
           </Routes>
         </InfoProvider>
       </Router>

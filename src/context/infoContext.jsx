@@ -3,6 +3,7 @@ import { createContext, useState } from "react";
 export const InfoContext = createContext();
 
 const Info = {
+    resumeLanguage: "en",
     personalInfo: {
         fullName: "",
         jobTitle: "",
@@ -108,6 +109,10 @@ export const InfoProvider = ({ children }) => {
         setResumeInfo(prev => ({ ...prev, summary: value }));
     };
 
+    const updateResumeLanguage = (value) => {
+        setResumeInfo(prev => ({ ...prev, resumeLanguage: value }));
+    };
+
     const addProject = () => {
         setResumeInfo(prev => ({
             ...prev,
@@ -208,6 +213,7 @@ export const InfoProvider = ({ children }) => {
             updateEducation,
             updateSkills,
             updateSummary,
+            updateResumeLanguage,
             addProject,
             removeProject,
             updateProject,

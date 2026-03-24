@@ -1,8 +1,17 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useState, useContext } from "react";
+import { InfoContext } from "../../context/infoContext";
 
 const Hero = () => {
-  const [showModal, setShowModal] = useState(false);
+  const [showLangModal, setShowLangModal] = useState(false);
+  const { updateResumeLanguage } = useContext(InfoContext);
+  const navigate = useNavigate();
+
+  const handleLanguageSelect = (lang) => {
+    updateResumeLanguage(lang);
+    setShowLangModal(false);
+    navigate("/builder");
+  };
 
   return (
     <>
@@ -59,6 +68,7 @@ const Hero = () => {
             justify-content: center;
             align-items: center;
             gap: 20px;
+            flex-wrap: wrap;
           }
           .button {
             color: white;
@@ -128,7 +138,7 @@ const Hero = () => {
                       width: 100%;
                       padding: 0 20px;
                   }
-                  .button-container a {
+                  .button-container a, .button-container button {
                       width: 100%;
                       text-decoration: none;
                   }
@@ -172,6 +182,29 @@ const Hero = () => {
                   margin-bottom: 25px;
                   font-family: 'Syne', sans-serif;
               }
+              .lang-buttons {
+                  display: flex;
+                  gap: 15px;
+                  justify-content: center;
+                  margin-bottom: 20px;
+              }
+              .lang-btn {
+                  padding: 12px 30px;
+                  font-size: 16px;
+                  font-weight: 600;
+                  cursor: pointer;
+                  background: none;
+                  border: 2px solid var(--text-primary);
+                  color: var(--text-primary);
+                  border-radius: 6px;
+                  font-family: 'Syne', sans-serif;
+                  transition: all 0.2s;
+              }
+              .lang-btn:hover {
+                  background: var(--text-primary);
+                  color: var(--bg-primary);
+              }
+              
               .modal-close {
                   background-color: #e84545;
                   color: white;
@@ -186,7 +219,7 @@ const Hero = () => {
               .modal-close:hover {
                   opacity: 0.9;
               }
-    `}</style>
+      `}</style>
       <div className="hero">
         <span className="span" >AI-Powered Resume Optimization</span>
         <h1 style={{ marginTop: "25px" }}>BEAT</h1>
@@ -194,19 +227,30 @@ const Hero = () => {
         <h1 className="hero-title-outline">LAND</h1>
         <h1>THE JOB.</h1>
         <div className="button-container">
-          <Link to="/builder" style={{ textDecoration: 'none' }}><button className="button first"><span >✦ Build My Resume</span></button></Link>
-          <button className="button second" onClick={() => setShowModal(true)}>✦ Analyze My Resume</button>
+          <button className="button first" onClick={() => setShowLangModal(true)}>
+            <span>✦ Build My Resume</span>
+          </button>
+          <Link to="/jobs" style={{ textDecoration: 'none' }}>
+            <button className="button second">✦ Find Jobs</button>
+          </Link>
+        </div>
+        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
+          <Link to="/skill-recommendations" style={{ textDecoration: 'none' }}>
+            <button className="button second" style={{ borderColor: '#6366f1', color: '#6366f1' }}>✦ Skill Recommendations</button>
+          </Link>
         </div>
       </div>
 
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+      {showLangModal && (
+        <div className="modal-overlay" onClick={() => setShowLangModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">Coming Soon!</div>
-            <div className="modal-desc">
-              Our AI-powered resume analyzer is currently under development. Check back soon for this feature!
+            <h2 className="modal-title">Choose Language</h2>
+            <p className="modal-desc">Select the language for your resume</p>
+            <div className="lang-buttons">
+              <button className="lang-btn" onClick={() => handleLanguageSelect('en')}>English</button>
+              <button className="lang-btn" onClick={() => handleLanguageSelect('fr')}>Français</button>
             </div>
-            <button className="modal-close" onClick={() => setShowModal(false)}>Got it</button>
+            <button className="modal-close" onClick={() => setShowLangModal(false)}>Close</button>
           </div>
         </div>
       )}
