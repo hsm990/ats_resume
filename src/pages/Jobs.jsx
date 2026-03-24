@@ -158,10 +158,11 @@ const Jobs = () => {
           font-family: 'Syne', sans-serif;
           outline: none;
           transition: border-color 0.3s;
-          color: #ffffff;
+          color: #e84545;
         }
         .search-input:focus {
           border-color: #e84545;
+          color: #e84545;
         }
         .search-input::placeholder {
           color: #666;

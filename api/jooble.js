@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   try {
     const apiKey = process.env.JOOBLE_API_KEY || process.env.VITE_JOOBLE_API_KEY;
 
-    if (!apiKey || apiKey === 'your_jooble_api_key_here') {
+    if (!apiKey) {
       return res.status(500).json({ error: 'Jooble API key not configured on server. Please add JOOBLE_API_KEY to your .env file.' });
     }
 
