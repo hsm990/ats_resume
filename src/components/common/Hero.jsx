@@ -227,16 +227,10 @@ const Hero = () => {
         <h1 className="hero-title-outline">LAND</h1>
         <h1>THE JOB.</h1>
         <div className="button-container">
-          <button className="button first" onClick={() => setShowLangModal(true)}>
-            <span>✦ Build My Resume</span>
-          </button>
-          <Link to="/jobs" style={{ textDecoration: 'none' }}>
-            <button className="button second">✦ Find Jobs</button>
-          </Link>
-        </div>
-        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center' }}>
-          <Link to="/skill-recommendations" style={{ textDecoration: 'none' }}>
-            <button className="button second" style={{ borderColor: '#6366f1', color: '#6366f1' }}>✦ Skill Recommendations</button>
+          <Link to="/services" style={{ textDecoration: 'none' }}>
+            <button className="button first">
+              <span>✦ Explore Services</span>
+            </button>
           </Link>
         </div>
       </div>

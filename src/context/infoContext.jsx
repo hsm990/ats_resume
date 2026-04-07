@@ -1,9 +1,14 @@
-import { createContext, useState } from "react";
+import { createContext, useState, useEffect } from "react";
 
 export const InfoContext = createContext();
 
 const Info = {
     resumeLanguage: "en",
+    resumeGoal: {
+        mode: "global",
+        targetJobTitle: "",
+        targetJobDescription: ""
+    },
     personalInfo: {
         fullName: "",
         jobTitle: "",
@@ -30,7 +35,28 @@ const Info = {
 };
 
 export const InfoProvider = ({ children }) => {
-    const [resumeInfo, setResumeInfo] = useState(Info);
+    const getInitialState = () => {
+        try {
+            const saved = localStorage.getItem("atsResumeData");
+            if (saved) return JSON.parse(saved);
+        } catch (e) {
+            console.error("Failed to load resume from localStorage", e);
+        }
+        return Info;
+    };
+
+    const [resumeInfo, setResumeInfo] = useState(getInitialState);
+
+    useEffect(() => {
+        localStorage.setItem("atsResumeData", JSON.stringify(resumeInfo));
+    }, [resumeInfo]);
+
+    const resetResumeInfo = () => {
+        if (window.confirm("Are you sure you want to clear your entire resume and start over? This cannot be undone.")) {
+            setResumeInfo(Info);
+            localStorage.removeItem("atsResumeData");
+        }
+    };
 
     const updatePersonalInfo = (field, value) => {
         setResumeInfo(prev => ({
@@ -38,6 +64,14 @@ export const InfoProvider = ({ children }) => {
             personalInfo: { ...prev.personalInfo, [field]: value }
         }));
     };
+
+    const updateResumeGoal = (field, value) => {
+        setResumeInfo(prev => ({
+            ...prev,
+            resumeGoal: { ...prev.resumeGoal, [field]: value }
+        }));
+    };
+
 
     const addExperience = () => {
         setResumeInfo(prev => ({
@@ -204,6 +238,8 @@ export const InfoProvider = ({ children }) => {
         <InfoContext.Provider value={{
             resumeInfo,
             setResumeInfo,
+            resetResumeInfo,
+            updateResumeGoal,
             updatePersonalInfo,
             addExperience,
             removeExperience,

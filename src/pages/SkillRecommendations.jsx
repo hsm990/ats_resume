@@ -146,6 +146,48 @@ const SkillRecommendations = () => {
     const navigate = useNavigate();
     const [expandedSkill, setExpandedSkill] = useState(skillsData[0].id);
 
+    // Form state
+    const [skillForm, setSkillForm] = useState({
+        skillName: '',
+        topics: [{ id: Date.now(), title: '', link: '' }]
+    });
+    const [formStatus, setFormStatus] = useState(null);
+
+    const handleTopicChange = (id, field, value) => {
+        setSkillForm(prev => ({
+            ...prev,
+            topics: prev.topics.map(t => t.id === id ? { ...t, [field]: value } : t)
+        }));
+    };
+
+    const addTopic = () => {
+        setSkillForm(prev => ({
+            ...prev,
+            topics: [...prev.topics, { id: Date.now(), title: '', link: '' }]
+        }));
+    };
+
+    const removeTopic = (id) => {
+        setSkillForm(prev => ({
+            ...prev,
+            topics: prev.topics.filter(t => t.id !== id)
+        }));
+    };
+
+    const handleFormSubmit = (e) => {
+        e.preventDefault();
+        console.log("Skill Suggested:", skillForm);
+        setFormStatus('success');
+
+        // Reset form
+        setSkillForm({
+            skillName: '',
+            topics: [{ id: Date.now(), title: '', link: '' }]
+        });
+
+        setTimeout(() => setFormStatus(null), 5000);
+    };
+
     const toggleSkill = (id) => {
         setExpandedSkill(prev => (prev === id ? null : id));
     };
@@ -153,15 +195,20 @@ const SkillRecommendations = () => {
     return (
         <div style={{ minHeight: "100vh", backgroundColor: "var(--bg-primary)", padding: "100px 20px 60px", fontFamily: "'Syne', 'Tajawal', sans-serif" }}>
             <div style={{ maxWidth: "800px", margin: "0 auto" }}>
-                <button
-                    type="button"
-                    onClick={() => navigate('/')}
-                    style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontFamily: "'Syne', 'Tajawal', sans-serif", fontSize: '15px', display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '30px', transition: 'all 0.2s', fontWeight: 600 }}
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.05)'}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                    ← Return Home
-                </button>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <button
+                        type="button"
+                        onClick={() => navigate('/')}
+                        style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontFamily: "'Syne', 'Tajawal', sans-serif", fontSize: '15px', display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '30px', transition: 'all 0.2s', fontWeight: 600 }}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.05)'}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                        ← Return Home
+                    </button>
+                    <a href="#suggest-skill">
+                        <button style={{ background: 'transparent', border: '1px solid #6366f1', color: '#6366f1', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontFamily: "'Syne', 'Tajawal', sans-serif", fontSize: '15px', display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '30px', transition: 'all 0.2s', fontWeight: 600 }}>suggest a skill</button>
+                    </a>
+                </div>
                 <h1 style={{ fontSize: "36px", color: "var(--text-primary)", marginBottom: "15px", fontWeight: 800 }}>Best Skills 2026</h1>
                 <p style={{ color: "var(--text-secondary)", fontSize: "16px", marginBottom: "50px", lineHeight: 1.8 }}>
                     We have selected and summarized the best learning paths for the most in-demand technical fields. Instead of getting confused between hundreds of courses, follow this precise roadmap and start learning what will guarantee a bright professional future through the best free Arabic resources on YouTube.
@@ -307,6 +354,107 @@ const SkillRecommendations = () => {
                             </div>
                         );
                     })}
+                </div>
+
+                {/* Suggest a Skill Form Section */}
+                <div style={{ marginTop: '80px', paddingTop: '40px', borderTop: '1px solid var(--border-color)' }} id="suggest-skill">
+                    <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+                        <h2 style={{ fontSize: '30px', color: 'var(--text-primary)', marginBottom: '16px', fontWeight: '800', fontFamily: "'Syne', 'Tajawal', sans-serif" }}>Suggest a Skill</h2>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '16px', fontFamily: "'Syne', 'Tajawal', sans-serif" }}>
+                            Want us to add a new roadmap? Submit a skill with its recommended resources below!
+                        </p>
+                    </div>
+
+                    <div style={{ backgroundColor: 'var(--bg-primary)', padding: '40px', borderRadius: '16px', border: '1px solid var(--border-color)', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)' }}>
+                        {formStatus === 'success' && (
+                            <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '8px', border: '1px solid #10b981', textAlign: 'center', fontWeight: '600' }}>
+                                Thank you! Your suggestion has been recorded successfully.
+                            </div>
+                        )}
+
+                        <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px', fontFamily: "'Syne', 'Tajawal', sans-serif" }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <label htmlFor="skillName" style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '15px' }}>Name of Skill</label>
+                                <input
+                                    type="text"
+                                    id="skillName"
+                                    value={skillForm.skillName}
+                                    onChange={(e) => setSkillForm(prev => ({ ...prev, skillName: e.target.value }))}
+                                    required
+                                    style={{ padding: '14px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'transparent', color: 'var(--text-primary)', fontSize: '16px', outline: 'none', transition: 'border-color 0.3s' }}
+                                    onFocus={(e) => e.target.style.borderColor = '#6366f1'}
+                                    onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
+                                    placeholder="e.g. Python for Data Science"
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <label style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '15px' }}>Roadmap Topics</label>
+                                </div>
+
+                                {skillForm.topics.map((topic, index) => (
+                                    <div key={topic.id} style={{ display: 'flex', gap: '16px', alignItems: 'center', backgroundColor: 'rgba(99, 102, 241, 0.02)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+                                        <div style={{ flex: '1 1 min-width: 200px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Topic Name</label>
+                                            <input
+                                                type="text"
+                                                value={topic.title}
+                                                onChange={(e) => handleTopicChange(topic.id, 'title', e.target.value)}
+                                                required
+                                                style={{ padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '15px', outline: 'none' }}
+                                                placeholder={`Topic #${index + 1}`}
+                                            />
+                                        </div>
+                                        <div style={{ flex: '2 1 min-width: 250px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <label style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Course/Resource Link</label>
+                                            <input
+                                                type="url"
+                                                value={topic.link}
+                                                onChange={(e) => handleTopicChange(topic.id, 'link', e.target.value)}
+                                                required
+                                                style={{ padding: '12px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '15px', outline: 'none' }}
+                                                placeholder="https://..."
+                                            />
+                                        </div>
+                                        {skillForm.topics.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => removeTopic(topic.id)}
+                                                style={{ width: '40px', height: '40px', borderRadius: '8px', border: '1px solid #ef4444', backgroundColor: 'transparent', color: '#ef4444', fontSize: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', alignSelf: 'flex-end', transition: 'all 0.2s' }}
+                                                onMouseEnter={(e) => { e.target.style.backgroundColor = '#ef4444'; e.target.style.color = 'white'; }}
+                                                onMouseLeave={(e) => { e.target.style.backgroundColor = 'transparent'; e.target.style.color = '#ef4444'; }}
+                                                title="Remove Topic"
+                                            >
+                                                ×
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+
+                                <button
+                                    type="button"
+                                    onClick={addTopic}
+                                    style={{ padding: '12px', borderRadius: '8px', border: '2px dashed #6366f1', backgroundColor: 'rgba(99, 102, 241, 0.05)', color: '#6366f1', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s' }}
+                                    onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(99, 102, 241, 0.1)'}
+                                    onMouseLeave={(e) => e.target.style.backgroundColor = 'rgba(99, 102, 241, 0.05)'}
+                                >
+                                    <span style={{ fontSize: '20px' }}>+</span> Add Topic
+                                </button>
+                            </div>
+
+                            <button
+                                type="submit"
+                                style={{ padding: '16px', borderRadius: '8px', border: 'none', backgroundColor: '#6366f1', color: '#ffffff', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.3s, transform 0.1s', marginTop: '20px' }}
+                                onMouseEnter={(e) => e.target.style.backgroundColor = '#4f46e5'}
+                                onMouseLeave={(e) => e.target.style.backgroundColor = '#6366f1'}
+                                onMouseDown={(e) => e.target.style.transform = 'scale(0.98)'}
+                                onMouseUp={(e) => e.target.style.transform = 'scale(1)'}
+                            >
+                                Submit Skill Suggestion
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
             <style>{`

@@ -43,14 +43,18 @@ const Builder = () => {
     const [errors, setErrors] = useState({});
     const [aiLoading, setAiLoading] = useState({});
     const [selectedTemplate, setSelectedTemplate] = useState('template1');
+    const [atsLoading, setAtsLoading] = useState(false);
+    const [atsResult, setAtsResult] = useState(null);
 
     const {
         resumeInfo,
+        resetResumeInfo,
         updatePersonalInfo,
         addExperience, removeExperience, updateExperience,
         addEducation, removeEducation, updateEducation,
         updateSkills,
         updateSummary,
+        updateResumeGoal,
         addProject, removeProject, updateProject,
         addLanguage, removeLanguage, updateLanguage,
         addCertification, removeCertification, updateCertification,
@@ -94,6 +98,10 @@ const Builder = () => {
         const key = `exp_${exp.id}`;
         setLoading(key, true);
         try {
+            const targetContext = resumeInfo.resumeGoal?.mode === "targeted" && resumeInfo.resumeGoal?.targetJobTitle
+                ? `TARGET ROLE: The candidate is specifically applying for: ${resumeInfo.resumeGoal.targetJobTitle}.\nJOB DESCRIPTION CONTEXT:\n${resumeInfo.resumeGoal.targetJobDescription}\nCRITICAL INSTRUCTION: Analyze the job description and heavily tailor the impact-driven sentences to align with its keywords, required tools, and responsibilities.`
+                : `Candidate Profile / Target Role: ${pi.jobTitle || "N/A"}`;
+
             const text = await gemini(`
 You are an expert resume writer and technical recruiter. Your task is to write impact-driven sentences for a candidate's work experience.
 The description must sound highly professional and should focus on outcomes, technical skills applied, and typical responsibilities for this role.
@@ -102,10 +110,10 @@ Write exactly 3 professional sentences describing the responsibilities and outco
 1. Provide exactly 3 lines, with each line being a complete sentence. DO NOT use bullet points (•), dashes, asterisks, or markdown.
 2. Structure: Start every sentence with a strong, past-tense action verb.
 3. Detail: Include realistic tools/technologies used and a realistic outcome.
-4. Completeness: Ensure every sentence is a FULL, COMPLETE thought and ends with a proper period.
+4. Completeness: CRITICAL: Ensure every sentence is a FULL, COMPLETE thought and always ends with a proper period. Do not cut off mid-sentence.
 
 Position: ${exp.jobTitle} at ${exp.company}${exp.location ? `, ${exp.location}` : ""}
-Candidate Profile / Target Role: ${pi.jobTitle || "N/A"}
+${targetContext}
 `.trim());
             const cleaned = text
                 .split("\n")
@@ -123,15 +131,19 @@ Candidate Profile / Target Role: ${pi.jobTitle || "N/A"}
         const key = `edu_${edu.id}`;
         setLoading(key, true);
         try {
+            const targetContext = resumeInfo.resumeGoal?.mode === "targeted" && resumeInfo.resumeGoal?.targetJobTitle
+                ? `TARGET ROLE: The candidate is applying for: ${resumeInfo.resumeGoal.targetJobTitle}.\nJOB DESCRIPTION CONTEXT:\n${resumeInfo.resumeGoal.targetJobDescription}\nCRITICAL INSTRUCTION: Tailor the description to align with the job requirements and keywords.`
+                : `Candidate Profile: ${pi.jobTitle || "N/A"}`;
+
             const text = await gemini(`
 You are an expert resume writer. Write a professional, impact-driven description for a candidate's education.
 Write exactly 2 complete sentences for the degree below.
 1. Output plain text only on two lines. DO NOT use bullet points (•), dashes, asterisks, or markdown.
-2. Ensure each sentence is a FULL, COMPLETE thought and ends with a proper period.
+2. CRITICAL: Ensure each sentence is a FULL, COMPLETE thought and always ends with a proper period. Do not cut off mid-sentence.
 3. Keep the tone professional and academic.
 
 Degree: ${edu.degree} from ${edu.school}${edu.location ? `, ${edu.location}` : ""}
-Candidate Profile: ${pi.jobTitle || "N/A"}
+${targetContext}
 `.trim());
             const cleaned = text
                 .split("\n")
@@ -149,8 +161,12 @@ Candidate Profile: ${pi.jobTitle || "N/A"}
         setLoading(key, true);
         try {
             const expDetails = exps.map(e => `${e.jobTitle} at ${e.company}${e.description ? ` (${e.description.slice(0, 80)})` : ""}`).join(" | ") || "N/A";
+            const targetContext = resumeInfo.resumeGoal?.mode === "targeted" && resumeInfo.resumeGoal?.targetJobTitle
+                ? `TARGET ROLE: ${resumeInfo.resumeGoal.targetJobTitle}\nJOB DESCRIPTION: ${resumeInfo.resumeGoal.targetJobDescription}\nCRITICAL: Analyze the job description and extract the most requested exact technical skills that match this candidate's profile.`
+                : `- Job Title: ${pi.jobTitle || "N/A"}`;
+
             const text = await gemini(`
-ROLE: You are a senior technical recruiter and resume strategist. You know exactly which technical skills ATS systems and hiring managers look for in ${pi.jobTitle || "a professional"} roles.
+ROLE: You are a senior technical recruiter and resume strategist. You know exactly which technical skills ATS systems and hiring managers look for.
 
 TASK: Suggest exactly 10 technical skills for this candidate's resume.
 
@@ -160,14 +176,15 @@ STRICT RULES:
 - BAD examples: "Programming", "Databases", "Cloud", "Software Development"
 - Mix: 4 core hard skills for the role + 3 supporting tools + 3 trending/in-demand skills for this field
 - Do NOT repeat skills already listed
-- Output format: plain comma-separated list on ONE line, nothing else
+- Output format: plain comma-separated list on ONE line, nothing else. DO NOT cut off. Finish the full list.
 
 CANDIDATE PROFILE:
-- Job Title: ${pi.jobTitle || "N/A"}
+${targetContext}
 - Experience: ${expDetails}
 - Already listed (DO NOT repeat): ${skls.technicalSkills || "none"}
 
 OUTPUT (comma-separated list only):
+
             `.trim());
             updateSkills("technicalSkills", text.replace(/\.$/, "").trim());
         } catch (e) { alert("AI error: " + e.message); }
@@ -179,6 +196,10 @@ OUTPUT (comma-separated list only):
         setLoading(key, true);
         try {
             const expDetails = exps.map(e => `${e.jobTitle} at ${e.company}`).join(", ") || "N/A";
+            const targetContext = resumeInfo.resumeGoal?.mode === "targeted" && resumeInfo.resumeGoal?.targetJobTitle
+                ? `TARGET ROLE: ${resumeInfo.resumeGoal.targetJobTitle}\nJOB DESCRIPTION: ${resumeInfo.resumeGoal.targetJobDescription}\nCRITICAL: Analyze the job description and extract the most requested soft skills and traits.`
+                : `- Job Title: ${pi.jobTitle || "N/A"}`;
+
             const text = await gemini(`
 ROLE: You are a career coach and resume expert who understands what soft skills matter most for different roles and industries.
 
@@ -190,10 +211,10 @@ STRICT RULES:
 - BAD examples: "Teamwork", "Hard worker", "Good communicator", "Fast learner"
 - Choose skills that are RELEVANT to the role and would appear in real job descriptions
 - Do NOT repeat skills already listed
-- Output format: plain comma-separated list on ONE line, nothing else
+- Output format: plain comma-separated list on ONE line, nothing else. DO NOT cut off formatting.
 
 CANDIDATE PROFILE:
-- Job Title: ${pi.jobTitle || "N/A"}
+${targetContext}
 - Experience: ${expDetails}
 - Already listed (DO NOT repeat): ${skls.softSkills || "none"}
 
@@ -209,6 +230,10 @@ OUTPUT (comma-separated list only):
         const key = `proj_${proj.id}`;
         setLoading(key, true);
         try {
+            const targetContext = resumeInfo.resumeGoal?.mode === "targeted" && resumeInfo.resumeGoal?.targetJobTitle
+                ? `TARGET ROLE: ${resumeInfo.resumeGoal.targetJobTitle}\nJOB DESCRIPTION: ${resumeInfo.resumeGoal.targetJobDescription}\nCRITICAL INSTRUCTION: Tailor the project description to directly align with the requirements and technologies mentioned in the job description.`
+                : `Developer Role: ${pi.jobTitle || "N/A"}`;
+
             const text = await gemini(`
 You are an expert technical resume writer. Your task is to write compelling sentences for a candidate's personal or academic project.
 
@@ -216,11 +241,11 @@ Write exactly 2 professional sentences describing the project below.
 1. Provide exactly 2 lines, with each line being a complete sentence. DO NOT use bullet points (•), dashes, asterisks, or markdown.
 2. Content (Sentence 1): Describe what the project is and the core technologies used.
 3. Content (Sentence 2): Describe a specific technical challenge solved or feature implemented.
-4. Completeness: Ensure every sentence is a FULL, COMPLETE thought and ends with a proper period.
+4. Completeness: CRITICAL: Ensure every sentence is a FULL, COMPLETE thought and always ends with a proper period. Do not cut off early.
 
 Project Name: ${proj.projectName}
 Link: ${proj.projectLink || "N/A"}
-Developer Role: ${pi.jobTitle || "N/A"}
+${targetContext}
 Candidate Skills: ${allSkills.slice(0, 8).join(", ") || "N/A"}
 `.trim());
             const cleaned = text
@@ -242,6 +267,10 @@ Candidate Skills: ${allSkills.slice(0, 8).join(", ") || "N/A"}
             ).join(" | ") || "N/A";
             const eduDetails = edus.map(e => `${e.degree} from ${e.school}`).join(", ") || "N/A";
             const numJobs = exps.length;
+            const targetContext = resumeInfo.resumeGoal?.mode === "targeted" && resumeInfo.resumeGoal?.targetJobTitle
+                ? `TARGET ROLE: ${resumeInfo.resumeGoal.targetJobTitle}\nJOB DESCRIPTION: ${resumeInfo.resumeGoal.targetJobDescription}\nCRITICAL: Strongly tailor this summary to the provided job description keywords.`
+                : `- Job Title: ${pi.jobTitle || "N/A"}`;
+
             const text = await gemini(`
 You are a professional resume writer. Write a realistic, grounded professional summary — based only on what the candidate has actually done.
 
@@ -251,20 +280,68 @@ RULES:
 1. Sentence 1: Mention their job title and their core area of expertise. Do NOT invent years of experience — only use the number if it can be calculated from the work history dates provided. If dates are missing just say "experienced" or "professional".
 2. Sentence 2: Mention 2–3 of their actual skills from the skills list + reference what they actually did in their roles. Be specific to their real background.
 3. Sentence 3: A confident closing statement about the value they bring. Forward-looking, specific to their field.
-4. Total: 55–75 words, one paragraph
-5. Tone: Professional, confident, no "I" — start with their role or a descriptor
-6. Output: one paragraph of plain text only — no labels, no quotes, no bullet points, nothing else
+4. Total Length: Strictly one paragraph. Limit to 60-80 words to ensure it fits output limits.
+5. Tone: Professional, confident, no "I" — start with their role or a descriptor.
+6. Completeness: CRITICAL: Ensure the full thought is completed and ends with a proper period. Never stop mid-sentence.
+7. Output: one paragraph of plain text only — no labels, no quotes, no bullet points, nothing else.
 
 CANDIDATE:
-- Job Title: ${pi.jobTitle || "N/A"}
+${targetContext}
 - Work history: ${expDetails}
 - Education: ${eduDetails}
 - Skills: ${allSkills.slice(0, 10).join(", ") || "N/A"}
 - Number of positions: ${numJobs}
 `.trim());
-            updateSummary(text.trim());
+            const cleaned = text
+                .replace(/^[\s\-•*\d."]+/, "")
+                .replace(/["']$/g, "")
+                .trim();
+            updateSummary(cleaned);
         } catch (e) { alert("AI error: " + e.message); }
         setLoading("summary", false);
+    };
+
+    const analyzeATS = async () => {
+        if (resumeInfo.resumeGoal?.mode !== "targeted" || !resumeInfo.resumeGoal?.targetJobDescription) {
+            alert("You must select 'Targeted (Specific Job)' in Step 1 and provide a Target Job Description to use the ATS Scanner.");
+            return;
+        }
+        setAtsLoading(true);
+        setAtsResult(null);
+        try {
+            const resumeTextDump = JSON.stringify({
+                summary: sum,
+                skills: allSkills,
+                experience: exps.map(e => ({ title: e.jobTitle, desc: e.description })),
+                education: edus.map(e => ({ degree: e.degree, desc: e.description })),
+            });
+            const text = await gemini(`
+You are an expert ATS (Applicant Tracking System) scanner. I will provide a Resume JSON and a Target Job Description.
+Compare them strictly based on keyword matching.
+Target Job Description:
+${resumeInfo.resumeGoal.targetJobDescription}
+
+Resume Data:
+${resumeTextDump}
+
+Output EXACTLY a valid JSON object with no markdown formatting or backticks. It must parse cleanly. Format:
+{
+  "score": <number between 0 and 100>,
+  "missingKeywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
+  "feedback": "Two sentences of constructive feedback."
+}
+            `.trim());
+            let cleanJson = text.trim();
+            if (cleanJson.startsWith("\`\`\`json")) cleanJson = cleanJson.substring(7);
+            if (cleanJson.startsWith("\`\`\`")) cleanJson = cleanJson.substring(3);
+            if (cleanJson.endsWith("\`\`\`")) cleanJson = cleanJson.substring(0, cleanJson.length - 3);
+            cleanJson = cleanJson.trim();
+            const parsed = JSON.parse(cleanJson);
+            setAtsResult(parsed);
+        } catch (e) {
+            alert("ATS Analysis error: " + e.message);
+        }
+        setAtsLoading(false);
     };
 
     const AiBtn = ({ loadKey, onClick, label = "✦ AI Suggest" }) => (
@@ -638,6 +715,14 @@ CANDIDATE:
                     <li className={activeStep === 8 ? "active" : activeStep > 8 ? "done" : ""} onClick={() => setActiveStep(8)}>Finalize</li>
                 </ul>
 
+                <div style={{ marginTop: "30px", padding: "15px", borderTop: "2px solid var(--border-color)", textAlign: "center" }}>
+                    <button type="button" onClick={() => { 
+                        resetResumeInfo(); 
+                        setActiveStep(1);
+                        setAtsResult(null);
+                    }} style={{ background: "transparent", color: "#e84545", border: "1px solid #e84545", padding: "8px 15px", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }} onMouseEnter={e => {e.target.style.background="#fbf2f2"}} onMouseLeave={e => {e.target.style.background="transparent"}}>Start Over (Clear Data)</button>
+                </div>
+
                 <div className="builder-left-content">
 
                     {/* STEP 1 — Personal Info  */}
@@ -646,6 +731,61 @@ CANDIDATE:
                             <h1>Personal Details</h1>
                             <p>Get started with your name and contact information.</p>
                             <div className="form-grid">
+
+                                <div className="form-group full-width" style={{ marginBottom: "20px" }}>
+                                    <label>Resume Goal <span className="req">*</span></label>
+                                    <div style={{ display: "flex", gap: "20px", marginTop: "10px", marginBottom: "15px" }}>
+                                        <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", textTransform: "none", fontSize: "14px", fontWeight: "600", color: "var(--text-primary)" }}>
+                                            <input 
+                                                type="radio" 
+                                                name="resumeMode" 
+                                                style={{ cursor: "pointer", width: "16px", height: "16px" }}
+                                                checked={resumeInfo.resumeGoal?.mode === "global"} 
+                                                onChange={() => updateResumeGoal("mode", "global")} 
+                                            />
+                                            Standard Resume
+                                        </label>
+                                        <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", textTransform: "none", fontSize: "14px", fontWeight: "600", color: "var(--text-primary)" }}>
+                                            <input 
+                                                type="radio" 
+                                                name="resumeMode" 
+                                                style={{ cursor: "pointer", width: "16px", height: "16px" }}
+                                                checked={resumeInfo.resumeGoal?.mode === "targeted"} 
+                                                onChange={() => updateResumeGoal("mode", "targeted")} 
+                                            />
+                                            Targeted (Specific Job)
+                                        </label>
+                                    </div>
+                                    
+                                    {resumeInfo.resumeGoal?.mode === "targeted" && (
+                                        <div style={{ 
+                                            marginTop: "5px", 
+                                            padding: "20px", 
+                                            border: "1px dashed #e84545", 
+                                            borderRadius: "8px", 
+                                            display: "flex", 
+                                            flexDirection: "column", 
+                                            gap: "15px",
+                                            backgroundColor: "rgba(232, 69, 69, 0.03)"
+                                        }}>
+                                            <p style={{ margin: "0 0 5px 0", fontSize: "12px", fontWeight: "600", color: "var(--text-secondary)" }}>The AI will tailor all auto-generated content to match this exact role.</p>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Target Job Title (e.g. Senior Frontend Engineer)" 
+                                                value={resumeInfo.resumeGoal.targetJobTitle} 
+                                                onChange={(e) => updateResumeGoal("targetJobTitle", e.target.value)} 
+                                                style={{ width: "100%", padding: "12px 15px", borderRadius: "6px", border: "1px solid var(--border-color)", fontFamily: "'Syne', sans-serif" }}
+                                            />
+                                            <textarea 
+                                                placeholder="Paste the Target Job Description here..." 
+                                                value={resumeInfo.resumeGoal.targetJobDescription} 
+                                                onChange={(e) => updateResumeGoal("targetJobDescription", e.target.value)} 
+                                                style={{ width: "100%", padding: "12px 15px", borderRadius: "6px", border: "1px solid var(--border-color)", minHeight: "120px", resize: "vertical", fontFamily: "'Syne', sans-serif" }}
+                                            ></textarea>
+                                        </div>
+                                    )}
+                                </div>
+
 
                                 <div className="form-group">
                                     <label>Full Name <span className="req">*</span></label>
@@ -1047,12 +1187,54 @@ CANDIDATE:
                                 />}
                                 fileName={pi.fullName ? `${pi.fullName.replace(/\s+/g, '_')}_Resume.pdf` : "resume.pdf"}
                                 className="btn-download"
-                                style={{ textDecoration: 'none' }}
+                                style={{ textDecoration: 'none', display: 'inline-block' }}
                             >
                                 {({ loading }) => (loading ? 'Preparing Document...' : '↓ Download PDF')}
                             </PDFDownloadLink>
 
-                            <hr style={{ margin: "40px 0", borderTop: "1px solid #ddd" }} />
+                            {/* ATS Scanner Section */}
+                            {resumeInfo.resumeGoal?.mode === "targeted" && (
+                                <div style={{ marginTop: "40px", padding: "20px", border: "1px solid var(--border-color)", borderRadius: "8px", backgroundColor: "rgba(232, 69, 69, 0.03)" }}>
+                                    <h3 style={{ fontSize: "18px", marginBottom: "10px", color: "var(--text-primary)" }}>ATS Keyword Scanner</h3>
+                                    <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "15px" }}>See how well your resume matches the target job description.</p>
+                                    
+                                    {!atsResult ? (
+                                        <button type="button" onClick={analyzeATS} disabled={atsLoading} style={{ padding: "10px 20px", background: "#e84545", color: "white", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "600", opacity: atsLoading ? 0.7 : 1 }}>
+                                            {atsLoading ? "Analyzing Match..." : "✦ Run ATS Scan"}
+                                        </button>
+                                    ) : (
+                                        <div style={{ padding: "20px", backgroundColor: "var(--bg-primary)", borderRadius: "8px", border: "1px solid var(--border-color)" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "20px", marginBottom: "20px" }}>
+                                                <div style={{ width: "70px", height: "70px", borderRadius: "50%", background: atsResult.score > 75 ? "#10b981" : atsResult.score > 50 ? "#f59e0b" : "#ef4444", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", fontWeight: "bold", boxShadow: "0 4px 10px rgba(0,0,0,0.1)" }}>
+                                                    {atsResult.score}%
+                                                </div>
+                                                <div>
+                                                    <h4 style={{ margin: 0, fontSize: "18px", color: "var(--text-primary)" }}>Match Score</h4>
+                                                    <p style={{ margin: "5px 0 0 0", fontSize: "14px", color: "var(--text-secondary)" }}>Based on keyword overlap</p>
+                                                </div>
+                                            </div>
+                                            <p style={{ fontSize: "15px", lineHeight: "1.6", marginBottom: "15px", color: "var(--text-primary)" }}>{atsResult.feedback}</p>
+                                            
+                                            {atsResult.missingKeywords && atsResult.missingKeywords.length > 0 && (
+                                                <div style={{ marginTop: "20px", padding: "15px", backgroundColor: "rgba(239, 68, 68, 0.05)", borderRadius: "6px", borderLeft: "4px solid #ef4444" }}>
+                                                    <strong style={{ display: "block", fontSize: "14px", color: "#ef4444", marginBottom: "10px" }}>Missing Keywords to Add to Your Resume:</strong>
+                                                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "8px" }}>
+                                                        {atsResult.missingKeywords.map((k, i) => (
+                                                            <span key={i} style={{ padding: "6px 12px", backgroundColor: "white", border: "1px solid #fca5a5", color: "#c62828", borderRadius: "4px", fontSize: "13px", fontWeight: "600" }}>{k}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            <button type="button" onClick={analyzeATS} disabled={atsLoading} style={{ marginTop: "20px", padding: "8px 16px", background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border-color)", borderRadius: "6px", fontSize: "14px", cursor: atsLoading ? "not-allowed" : "pointer", fontWeight: "600", transition: "all 0.2s" }} onMouseEnter={e => {e.target.style.background="var(--border-color)"}} onMouseLeave={e => {e.target.style.background="transparent"}}>
+                                               {atsLoading ? "Rescanning..." : "Rescan Resume"}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <hr style={{ margin: "40px 0", borderTop: "1px solid var(--border-color)" }} />
 
                             <h2 style={{ fontSize: "20px" }}>Additional Sections <span style={{ fontSize: "14px", fontWeight: "400", color: "#666" }}>(Optional)</span></h2>
                             <p>Enhance your resume by adding certifications, awards, references, or custom sections.</p>

@@ -46,7 +46,6 @@ export const Navbar = () => (
 
             @media (max-width: 768px) {
                 .navbar {
-                    flex-direction: column;
                     gap: 20px;
                     padding: 16px 20px;
                 }
@@ -58,13 +57,13 @@ export const Navbar = () => (
         `}</style>
         <nav className="navbar">
             <Link to="/" className="navbar-logo">
-                <img src={logo} alt="Logo" style={{ width: "100px", height: "50px" }} />
+                <img src={logo} alt="Logo" style={{ width: "100px", height: "50px", border: "1px solid var(--border-color)" }} />
             </Link>
-            {/* <div className="navbar-links">
-                <Link to="/how-it-works" className="navbar-link">How it works</Link>
-                <Link to="/who-we-are" className="navbar-link">Who we are</Link>
-                <Link to="/contact-us" className="navbar-link">Contact us</Link>
-            </div> */}
+
+            <div className="navbar-links">
+                <Link to="/contact" className="navbar-link">Contact Us</Link>
+            </div>
+
             <div className="navbar-actions">
                 <Switch />
             </div>
