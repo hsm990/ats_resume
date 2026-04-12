@@ -23,14 +23,14 @@ const Services = () => {
       color: "#e84545"
     },
     {
-      id: "03",
+      id: "02",
       title: "Find Remote Jobs",
       description: "Discover high-quality remote opportunities perfectly suited for your skills.",
       path: "/jobs",
       color: "#e84545"
     },
     {
-      id: "04",
+      id: "03",
       title: "Skill Recommendations",
       description: "Get curated roadmaps and resources to level up your career.",
       path: "/skill-recommendations",
@@ -247,10 +247,10 @@ const Services = () => {
             opacity: 0.9;
         }
       `}</style>
-      
+
       <div className="services-page">
         <AnimationBar />
-        
+
         <div className="services-header">
           <button
             type="button"
@@ -268,8 +268,8 @@ const Services = () => {
 
         <div className="services-grid">
           {services.map((service) => (
-            <div 
-              key={service.id} 
+            <div
+              key={service.id}
               className="service-card"
               onClick={() => handleServiceClick(service.path)}
               style={{ color: service.color }}

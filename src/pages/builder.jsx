@@ -753,6 +753,19 @@ Format:
                 padding: 40px;
             }
 
+            @media (max-width: 900px) {
+                .builder-container { flex-direction: column; height: auto; overflow: visible; }
+                .builder-left { width: 100%; height: auto; min-height: unset; padding: 30px 20px; border-right: none; }
+                .builder-left-content { width: 100%; max-width: 100%; padding-bottom: 20px; }
+                .builder-right { width: 100%; height: auto; padding: 20px 0; display: flex; justify-content: center; overflow: hidden; position: static; }
+                .form-grid { grid-template-columns: 1fr; }
+                .form-group.full-width { grid-column: span 1; }
+                .builder-left ul { flex-wrap: wrap; gap: 10px; margin-bottom: 40px; }
+                .builder-left ul:before { display: none; } /* hide progress line on mobile */
+                .scale-wrapper { transform: scale(0.42) !important; transform-origin: top center !important; margin-bottom: -160mm !important; }
+                .btn-submit, .btn-back { width: 48%; padding: 12px 10px; }
+            }
+
             @media print {
                 @page {
                     size: A4 portrait;
@@ -1324,28 +1337,30 @@ Format:
                                 <button type="button" onClick={() => setSelectedTemplate('template3')} style={{ padding: '12px 24px', border: selectedTemplate === 'template3' ? '2px solid #e84545' : '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer', background: selectedTemplate === 'template3' ? 'rgba(232,69,69,0.1)' : 'transparent', color: selectedTemplate === 'template3' ? '#e84545' : 'var(--text-primary)', fontWeight: 600, transition: 'all 0.2s', fontFamily: "'Syne', sans-serif", letterSpacing: '1px' }}>MINIMALIST</button>
                             </div>
 
-                            <PDFDownloadLink
-                                document={<ResumePDFTemplate
-                                    personalInfo={resumeInfo.personalInfo}
-                                    experience={resumeInfo.experience}
-                                    education={resumeInfo.education}
-                                    skills={resumeInfo.skills}
-                                    projects={resumeInfo.projects}
-                                    languages={resumeInfo.languages}
-                                    certifications={resumeInfo.certifications}
-                                    awards={resumeInfo.awards}
-                                    references={resumeInfo.references}
-                                    customSections={resumeInfo.customSections}
-                                    summary={resumeInfo.summary}
-                                    resumeLanguage={resumeInfo.resumeLanguage}
-                                    templateId={selectedTemplate}
-                                />}
-                                fileName={pi.fullName ? `${pi.fullName.replace(/\s+/g, '_')}_Resume.pdf` : "resume.pdf"}
-                                className="btn-download"
-                                style={{ textDecoration: 'none', display: 'inline-block', 'marginLeft': '20px' }}
-                            >
-                                {({ loading }) => (loading ? 'Preparing Document...' : '↓ Download PDF')}
-                            </PDFDownloadLink>
+                            <div style={{ display: 'flex', justifyContent: 'center', width: '100%', marginBottom: '20px' }}>
+                                <PDFDownloadLink
+                                    document={<ResumePDFTemplate
+                                        personalInfo={resumeInfo.personalInfo}
+                                        experience={resumeInfo.experience}
+                                        education={resumeInfo.education}
+                                        skills={resumeInfo.skills}
+                                        projects={resumeInfo.projects}
+                                        languages={resumeInfo.languages}
+                                        certifications={resumeInfo.certifications}
+                                        awards={resumeInfo.awards}
+                                        references={resumeInfo.references}
+                                        customSections={resumeInfo.customSections}
+                                        summary={resumeInfo.summary}
+                                        resumeLanguage={resumeInfo.resumeLanguage}
+                                        templateId={selectedTemplate}
+                                    />}
+                                    fileName={pi.fullName ? `${pi.fullName.replace(/\s+/g, '_')}_Resume.pdf` : "resume.pdf"}
+                                    className="btn-download"
+                                    style={{ textDecoration: 'none', display: 'flex', maxWidth: '350px' }}
+                                >
+                                    {({ loading }) => (loading ? 'Preparing Document...' : '↓ Download PDF')}
+                                </PDFDownloadLink>
+                            </div>
 
                             {/* ATS Scanner Section */}
                             {resumeInfo.resumeGoal?.mode === "targeted" && (

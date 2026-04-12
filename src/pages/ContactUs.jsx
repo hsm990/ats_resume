@@ -124,14 +124,21 @@ const ContactUs = () => {
                         </div>
                     )}
 
-                    {/* Spinner keyframe */}
-                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                    {/* Spinner keyframe & mobile flex styles */}
+                    <style>{`
+                        @keyframes spin { to { transform: rotate(360deg); } }
+                        .contact-row { display: flex; flex-wrap: wrap; gap: 22px; }
+                        .contact-field { flex: 1 1 calc(50% - 11px); display: flex; flex-direction: column; gap: 7px; }
+                        @media (max-width: 600px) {
+                            .contact-field { flex: 1 1 100%; }
+                        }
+                    `}</style>
 
                     {/* Form */}
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '22px' }}>
+                        <div className="contact-row">
                             {/* Name */}
-                            <div style={{ flex: '1 1 calc(50% - 11px)', display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                            <div className="contact-field">
                                 <label htmlFor="name" style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '12px', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'Syne', 'Tajawal', sans-serif" }}>
                                     Full Name
                                 </label>
@@ -145,7 +152,7 @@ const ContactUs = () => {
                                 />
                             </div>
                             {/* Email */}
-                            <div style={{ flex: '1 1 calc(50% - 11px)', display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                            <div className="contact-field">
                                 <label htmlFor="email" style={{ color: 'var(--text-secondary)', fontWeight: '600', fontSize: '12px', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'Syne', 'Tajawal', sans-serif" }}>
                                     Email Address
                                 </label>
