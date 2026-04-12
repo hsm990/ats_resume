@@ -5,6 +5,9 @@ export default async function handler(req, res) {
 
   const { keywords, location, resultonpage } = req.body;
 
+  if ((keywords && keywords.length > 300) || (location && location.length > 300)) {
+    return res.status(400).json({ error: 'Payload too large.' });
+  }
   try {
     const apiKey = process.env.JOOBLE_API_KEY || process.env.VITE_JOOBLE_API_KEY;
 

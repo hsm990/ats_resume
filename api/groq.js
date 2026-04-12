@@ -9,6 +9,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Prompt is required' });
   }
 
+  if (prompt.length > 8000) {
+    return res.status(400).json({ error: 'Payload too large. The request exceeds safety limits.' });
+  }
+
   try {
     const apiKey = process.env.GROQ_API_KEY || process.env.VITE_GROQ_API_KEY;
 

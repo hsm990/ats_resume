@@ -198,8 +198,8 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
                     <div className="cv-empty">Preview will appear here</div>
                 ) : (
                     <>
-                        <div style={{ 
-                            textAlign: "center", 
+                        <div style={{
+                            textAlign: "center",
                             marginBottom: "16px",
                             paddingBottom: templateId === 'template3' ? "12px" : "0",
                             borderBottom: templateId === 'template3' ? "1px solid #333" : "none"

@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
 
-const API_URL = import.meta.env.VITE_GOOGLE_SHEET_API;
-
 const STATUS_CONFIG = {
     loading: {
         bg: '#f0f4ff',
@@ -50,9 +48,20 @@ const ContactUs = () => {
         setError('');
 
         try {
-            const url = `${API_URL}?name=${encodeURIComponent(formData.name)}&email=${encodeURIComponent(formData.email)}&message=${encodeURIComponent(formData.message)}`;
-            const response = await fetch(url);
-            const data = await response.json();
+            let response, data;
+
+            if (import.meta.env.DEV && import.meta.env.VITE_GOOGLE_SHEET_API) {
+                const url = `${import.meta.env.VITE_GOOGLE_SHEET_API}?name=${encodeURIComponent(formData.name)}&email=${encodeURIComponent(formData.email)}&message=${encodeURIComponent(formData.message)}`;
+                response = await fetch(url);
+                data = await response.json();
+            } else {
+                response = await fetch('/api/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                data = await response.json();
+            }
 
             if (data.status === 'success') {
                 setStatus('success');
@@ -129,7 +138,7 @@ const ContactUs = () => {
                                 <input
                                     type="text" id="name" name="name"
                                     value={formData.name} onChange={handleChange} required
-                                    placeholder="e.g. Amina Benali"
+                                    placeholder="e.g. Hanni Massi"
                                     style={inputStyle}
                                     onFocus={e => e.target.style.borderColor = '#6366f1'}
                                     onBlur={e => e.target.style.borderColor = 'var(--border-color)'}

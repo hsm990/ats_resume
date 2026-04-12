@@ -174,18 +174,49 @@ const SkillRecommendations = () => {
         }));
     };
 
-    const handleFormSubmit = (e) => {
+    const handleFormSubmit = async (e) => {
         e.preventDefault();
-        console.log("Skill Suggested:", skillForm);
-        setFormStatus('success');
+        
+        try {
+            setFormStatus('loading');
+            let response, data;
 
-        // Reset form
-        setSkillForm({
-            skillName: '',
-            topics: [{ id: Date.now(), title: '', link: '' }]
-        });
+            if (import.meta.env.DEV && import.meta.env.VITE_GOOGLE_SHEET_SKILLS_API) {
+                // In local dev, a direct POST to Google Scripts usually triggers a CORS opaque response block or redirect issue 
+                // when trying to read response.json(), even if the script successfully executed.
+                // We use 'no-cors' so the browser allows the fetch, and we mock the success response.
+                await fetch(import.meta.env.VITE_GOOGLE_SHEET_SKILLS_API, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    body: JSON.stringify(skillForm)
+                });
+                data = { status: 'success' };
+            } else {
+                response = await fetch('/api/skills', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(skillForm)
+                });
+                data = await response.json();
+            }
 
-        setTimeout(() => setFormStatus(null), 5000);
+            if (data.status === 'success') {
+                setFormStatus('success');
+                // Reset form
+                setSkillForm({
+                    skillName: '',
+                    topics: [{ id: Date.now(), title: '', link: '' }]
+                });
+                setTimeout(() => setFormStatus(null), 5000);
+            } else {
+                setFormStatus(null);
+                alert("Error: " + (data.message || "Failed to submit skill."));
+            }
+        } catch(error) {
+            console.error("Submission error:", error);
+            setFormStatus(null);
+            alert("Error: connection failed.");
+        }
     };
 
     const toggleSkill = (id) => {
@@ -445,13 +476,25 @@ const SkillRecommendations = () => {
 
                             <button
                                 type="submit"
-                                style={{ padding: '16px', borderRadius: '8px', border: 'none', backgroundColor: '#6366f1', color: '#ffffff', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.3s, transform 0.1s', marginTop: '20px' }}
-                                onMouseEnter={(e) => e.target.style.backgroundColor = '#4f46e5'}
-                                onMouseLeave={(e) => e.target.style.backgroundColor = '#6366f1'}
-                                onMouseDown={(e) => e.target.style.transform = 'scale(0.98)'}
-                                onMouseUp={(e) => e.target.style.transform = 'scale(1)'}
+                                disabled={formStatus === 'loading'}
+                                style={{
+                                    padding: '16px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    backgroundColor: formStatus === 'loading' ? '#a5b4fc' : '#6366f1',
+                                    color: '#ffffff',
+                                    fontSize: '16px',
+                                    fontWeight: 'bold',
+                                    cursor: formStatus === 'loading' ? 'not-allowed' : 'pointer',
+                                    transition: 'background-color 0.3s, transform 0.1s',
+                                    marginTop: '20px'
+                                }}
+                                onMouseEnter={(e) => { if (formStatus !== 'loading') e.target.style.backgroundColor = '#4f46e5'; }}
+                                onMouseLeave={(e) => { if (formStatus !== 'loading') e.target.style.backgroundColor = '#6366f1'; }}
+                                onMouseDown={(e) => { if (formStatus !== 'loading') e.target.style.transform = 'scale(0.98)'; }}
+                                onMouseUp={(e) => { e.target.style.transform = 'scale(1)'; }}
                             >
-                                Submit Skill Suggestion
+                                {formStatus === 'loading' ? 'Submitting...' : 'Submit Skill Suggestion'}
                             </button>
                         </form>
                     </div>

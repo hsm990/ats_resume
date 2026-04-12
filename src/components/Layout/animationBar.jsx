@@ -1,11 +1,10 @@
 export default function AnimationBar() {
   const TICKER_ITEMS = [
-    "ATS SCORE ANALYZER",
+    "ATS MATCHING",
     "KEYWORD MATCHING",
-    "BULLET REWRITES",
     "PDF EXPORT",
     "AI-POWERED",
-    "GEMINI API",
+    "GROQ API",
     "BEAT THE BOTS",
   ];
 
