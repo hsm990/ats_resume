@@ -159,17 +159,20 @@ const Services = () => {
           font-size: 15px;
           color: var(--text-primary);
           background: transparent;
-          border: none;
-          padding: 0;
+          border: 1px solid var(--text-primary);
+          border-radius: 8px;
+          padding: 8px 20px;
           cursor: pointer;
           display: flex;
           align-items: center;
           gap: 10px;
           transition: all 0.3s;
+          margin-top: auto;
         }
         .service-card:hover .service-btn {
           gap: 15px;
-          color: currentColor;
+          color: var(--bg-primary);
+          background: var(--text-primary);
         }
 
         /* Modal Styles */

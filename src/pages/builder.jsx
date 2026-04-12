@@ -1,32 +1,33 @@
-import { useState } from "react";
-import { useContext } from "react";
+import React, { useState, useContext } from "react";
 import { InfoContext } from "../context/infoContext";
 import AccordionUsage from "../components/Layout/Accordion";
 import ResumeTemplate from "../components/resume/ResumeTemplate";
 import ResumePDFTemplate from "../components/resume/ResumePDFTemplate";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
-const gemini = async (prompt) => {
-    if (import.meta.env.DEV && GEMINI_API_KEY) {
-        const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GEMINI_API_KEY}`,
-            {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { temperature: 0.4, maxOutputTokens: 1024 }
-                })
-            }
-        );
+const askAI = async (prompt) => {
+    if (import.meta.env.DEV && GROQ_API_KEY) {
+        const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${GROQ_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "llama-3.1-8b-instant",
+                messages: [{ role: "user", content: prompt }],
+                temperature: 0.4,
+                max_tokens: 2048
+            })
+        });
         const data = await res.json();
-        if (data.error) throw new Error(data.error.message);
-        return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+        if (data.error) throw new Error(data.error.message || "Groq API Error");
+        return data.choices?.[0]?.message?.content?.trim() || "";
     }
 
-    const res = await fetch('/api/gemini', {
+    const res = await fetch('/api/groq', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })
@@ -45,6 +46,12 @@ const Builder = () => {
     const [selectedTemplate, setSelectedTemplate] = useState('template1');
     const [atsLoading, setAtsLoading] = useState(false);
     const [atsResult, setAtsResult] = useState(null);
+    const [toastError, setToastError] = useState("");
+
+    const showError = (msg) => {
+        setToastError(msg);
+        setTimeout(() => setToastError(""), 5000);
+    };
 
     const {
         resumeInfo,
@@ -94,100 +101,145 @@ const Builder = () => {
     const setLoading = (key, val) => setAiLoading(prev => ({ ...prev, [key]: val }));
 
     const suggestExpDesc = async (exp) => {
-        if (!exp.jobTitle && !exp.company) return alert("Fill in Job Title and Company first.");
+        if (!exp.jobTitle && !exp.company) return showError("Fill in Job Title and Company first.");
         const key = `exp_${exp.id}`;
         setLoading(key, true);
         try {
             const targetContext = resumeInfo.resumeGoal?.mode === "targeted" && resumeInfo.resumeGoal?.targetJobTitle
-                ? `TARGET ROLE: The candidate is specifically applying for: ${resumeInfo.resumeGoal.targetJobTitle}.\nJOB DESCRIPTION CONTEXT:\n${resumeInfo.resumeGoal.targetJobDescription}\nCRITICAL INSTRUCTION: Analyze the job description and heavily tailor the impact-driven sentences to align with its keywords, required tools, and responsibilities.`
-                : `Candidate Profile / Target Role: ${pi.jobTitle || "N/A"}`;
+                ? `TARGET ROLE: ${resumeInfo.resumeGoal.targetJobTitle}
+REQUIRED KEYWORDS (use these exact terms, do not paraphrase them): ${resumeInfo.resumeGoal.targetJobDescription}`
+                : `Role context: ${pi.jobTitle || "N/A"}`;
 
-            const text = await gemini(`
-You are an expert resume writer and technical recruiter. Your task is to write impact-driven sentences for a candidate's work experience.
-The description must sound highly professional and should focus on outcomes, technical skills applied, and typical responsibilities for this role.
+            const text = await askAI(`
+[SYSTEM] You are a professional resume writer. Output ONLY the experience description. No greetings, no explanations, no labels, no bullet points, no markdown.
 
-Write exactly 3 professional sentences describing the responsibilities and outcomes for this position.
-1. Provide exactly 3 lines, with each line being a complete sentence. DO NOT use bullet points (•), dashes, asterisks, or markdown.
-2. Structure: Start every sentence with a strong, past-tense action verb.
-3. Detail: Include realistic tools/technologies used and a realistic outcome.
-4. Completeness: CRITICAL: Ensure every sentence is a FULL, COMPLETE thought and always ends with a proper period. Do not cut off mid-sentence.
+[TASK] Write exactly 3 sentences describing this work experience.
 
-Position: ${exp.jobTitle} at ${exp.company}${exp.location ? `, ${exp.location}` : ""}
+[RULES]
+- Sentence 1: Start with a past-tense action verb. Describe the core responsibility and scale (team size, system size, or user base).
+- Sentence 2: Start with a different past-tense action verb. Name specific tools, technologies, or methodologies used.
+- Sentence 3: Start with a different past-tense action verb. State one measurable result (use a realistic % or number if unknown).
+- Every sentence must end with a period and be fully grammatically complete.
+- NEVER use: "various", "multiple", "several", "helped", "assisted", "worked on", "responsible for".
+- Output ONLY 3 sentences. Nothing before, nothing after.
+
+[POSITION]
+Job Title: ${exp.jobTitle}
+Company: ${exp.company}${exp.location ? `\nLocation: ${exp.location}` : ""}
 ${targetContext}
+
+[OUTPUT - 3 SENTENCES ONLY]
 `.trim());
-            const cleaned = text
-                .split("\n")
-                .map(l => l.replace(/^[\s\-•*\d.]+/, "").trim())
-                .filter(Boolean)
-                .slice(0, 3)
-                .join("\n");
-            updateExperience(exp.id, "description", cleaned);
-        } catch (e) { alert("AI error: " + e.message); }
+
+            // Strip any preamble llama might add before the actual sentences
+            const lines = text
+                .split(/(?<=[.!?])\s+/) // split on sentence boundaries
+                .map(s => s.replace(/^[\s\-•*\d.)]+/, "").trim())
+                .filter(s => s.length > 20 && /[A-Z]/.test(s[0])); // keep only real sentences
+
+            const result = lines.slice(0, 3).join(" ");
+            updateExperience(exp.id, "description", result || text.trim());
+        } catch (e) { showError("AI error: " + e.message); }
         setLoading(key, false);
     };
-
     const suggestEduDesc = async (edu) => {
-        if (!edu.degree && !edu.school) return alert("Fill in Degree and School first.");
+        if (!edu.degree && !edu.school) return showError("Fill in Degree and School first.");
         const key = `edu_${edu.id}`;
         setLoading(key, true);
         try {
             const targetContext = resumeInfo.resumeGoal?.mode === "targeted" && resumeInfo.resumeGoal?.targetJobTitle
-                ? `TARGET ROLE: The candidate is applying for: ${resumeInfo.resumeGoal.targetJobTitle}.\nJOB DESCRIPTION CONTEXT:\n${resumeInfo.resumeGoal.targetJobDescription}\nCRITICAL INSTRUCTION: Tailor the description to align with the job requirements and keywords.`
-                : `Candidate Profile: ${pi.jobTitle || "N/A"}`;
+                ? `TARGET ROLE: ${resumeInfo.resumeGoal.targetJobTitle}
+ALIGN WITH THESE KEYWORDS (use exact terms where natural): ${resumeInfo.resumeGoal.targetJobDescription}`
+                : `Candidate's target role: ${pi.jobTitle || "N/A"}`;
 
-            const text = await gemini(`
-You are an expert resume writer. Write a professional, impact-driven description for a candidate's education.
-Write exactly 2 complete sentences for the degree below.
-1. Output plain text only on two lines. DO NOT use bullet points (•), dashes, asterisks, or markdown.
-2. CRITICAL: Ensure each sentence is a FULL, COMPLETE thought and always ends with a proper period. Do not cut off mid-sentence.
-3. Keep the tone professional and academic.
+            const text = await askAI(`
+[SYSTEM] You are a professional resume writer. Output ONLY the education description. No greetings, no explanations, no labels, no bullet points, no markdown.
 
-Degree: ${edu.degree} from ${edu.school}${edu.location ? `, ${edu.location}` : ""}
+[TASK] Write exactly 2 sentences describing this candidate's education entry.
+
+[RULES]
+- Sentence 1: Describe the degree, field of study, and any notable academic focus, specialization, or relevant coursework. Be specific and realistic.
+- Sentence 2: Mention one concrete achievement, extracurricular, thesis topic, academic honor, or skill gained that is relevant to the candidate's career direction.
+- Both sentences must be fully grammatically complete and end with a period.
+- NEVER use vague filler: "various", "multiple", "several", "helped", "studied hard", "worked on", "responsible for".
+- If a target role is provided, naturally weave in 1-2 keywords from it without forcing them.
+- Output ONLY 2 sentences. Nothing before, nothing after.
+
+[EDUCATION]
+Degree: ${edu.degree}
+School: ${edu.school}${edu.location ? `\nLocation: ${edu.location}` : ""}
+${edu.graduationYear ? `Graduation Year: ${edu.graduationYear}` : ""}
 ${targetContext}
+
+[OUTPUT - 2 SENTENCES ONLY]
 `.trim());
-            const cleaned = text
-                .split("\n")
-                .map(l => l.replace(/^[\s\-•*\d.]+/, "").trim())
-                .filter(Boolean)
-                .slice(0, 2)
-                .join(" ");
-            updateEducation(edu.id, "description", cleaned);
-        } catch (e) { alert("AI error: " + e.message); }
+
+            const sentences = text
+                .split(/(?<=[.!?])\s+/)
+                .map(s => s.replace(/^[\s\-•*\d.)]+/, "").trim())
+                .filter(s => s.length > 20 && /[A-Z]/.test(s[0]));
+
+            const result = sentences.slice(0, 2).join(" ");
+            updateEducation(edu.id, "description", result || text.trim());
+        } catch (e) { showError("AI error: " + e.message); }
         setLoading(key, false);
     };
 
+
     const suggestTechSkills = async () => {
+        if (resumeInfo.resumeGoal?.mode === "targeted" && !resumeInfo.resumeGoal?.targetJobDescription) {
+            return showError("Please provide a Target Job Description in Step 1 to extract targeted skills.");
+        }
         const key = "tech_skills";
         setLoading(key, true);
         try {
-            const expDetails = exps.map(e => `${e.jobTitle} at ${e.company}${e.description ? ` (${e.description.slice(0, 80)})` : ""}`).join(" | ") || "N/A";
+            const expDetails = exps
+                .map(e => `${e.jobTitle} at ${e.company}${e.description ? ` (${e.description.slice(0, 80)})` : ""}`)
+                .join(" | ") || "N/A";
+
+            const existingSkills = skls.technicalSkills
+                ? `ALREADY LISTED — DO NOT INCLUDE ANY OF THESE: ${skls.technicalSkills}`
+                : "";
+
             const targetContext = resumeInfo.resumeGoal?.mode === "targeted" && resumeInfo.resumeGoal?.targetJobTitle
-                ? `TARGET ROLE: ${resumeInfo.resumeGoal.targetJobTitle}\nJOB DESCRIPTION: ${resumeInfo.resumeGoal.targetJobDescription}\nCRITICAL: Analyze the job description and extract the most requested exact technical skills that match this candidate's profile.`
-                : `- Job Title: ${pi.jobTitle || "N/A"}`;
+                ? `Target job title: ${resumeInfo.resumeGoal.targetJobTitle}
+Job description (extract exact tool/technology names from this): ${resumeInfo.resumeGoal.targetJobDescription}`
+                : `Candidate's current/target role: ${pi.jobTitle || "N/A"}`;
 
-            const text = await gemini(`
-ROLE: You are a senior technical recruiter and resume strategist. You know exactly which technical skills ATS systems and hiring managers look for.
+            const text = await askAI(`
+[SYSTEM] You are a resume ATS optimization expert. Output ONLY a comma-separated list. No numbering, no bullets, no headers, no explanation, no extra text.
 
-TASK: Suggest exactly 10 technical skills for this candidate's resume.
+[TASK] Generate exactly 10 technical skills for this candidate's resume.
 
-STRICT RULES:
-- Skills must be SPECIFIC tools, languages, frameworks, platforms — not vague concepts
-- GOOD examples: React.js, PostgreSQL, Docker, AWS Lambda, Figma, TypeScript, Redis, Kubernetes
-- BAD examples: "Programming", "Databases", "Cloud", "Software Development"
-- Mix: 4 core hard skills for the role + 3 supporting tools + 3 trending/in-demand skills for this field
-- Do NOT repeat skills already listed
-- Output format: plain comma-separated list on ONE line, nothing else. DO NOT cut off. Finish the full list.
+[RULES]
+- Every skill must be a specific named tool, language, framework, or platform.
+- ALLOWED: React.js, PostgreSQL, Docker, AWS Lambda, Figma, TypeScript, Redis, Kubernetes, Tailwind CSS, GraphQL
+- NOT ALLOWED: "Programming", "Databases", "Cloud Computing", "Software Development", "Problem Solving"
+- Distribute as: 4 core skills directly matching the role + 3 complementary tools + 3 in-demand skills for this field
+- Each skill must be 1-4 words maximum. No descriptions, no parentheses, no explanations next to the skill.
+- You MUST output all 10. Do not stop early.
+- ${existingSkills}
 
-CANDIDATE PROFILE:
-${targetContext}
-- Experience: ${expDetails}
-- Already listed (DO NOT repeat): ${skls.technicalSkills || "none"}
+[CANDIDATE]
+Role context: ${targetContext}
+Experience: ${expDetails}
 
-OUTPUT (comma-separated list only):
+[OUTPUT - comma-separated list of exactly 10 skills, nothing else]
+`.trim());
 
-            `.trim());
-            updateSkills("technicalSkills", text.replace(/\.$/, "").trim());
-        } catch (e) { alert("AI error: " + e.message); }
+            // Clean up common LLaMA output issues
+            const cleaned = text
+                .replace(/^[^a-zA-Z]+/, "")           // strip leading symbols/numbers
+                .replace(/\n/g, ", ")                   // flatten any newlines into the list
+                .replace(/\d+\.\s*/g, "")              // remove "1. 2. 3." numbering
+                .replace(/[-•*]\s*/g, "")              // remove bullet chars
+                .replace(/\s{2,}/g, " ")               // collapse whitespace
+                .replace(/,\s*,/g, ",")                // fix double commas
+                .replace(/\.$/, "")                     // strip trailing period
+                .trim();
+
+            updateSkills("technicalSkills", cleaned);
+        } catch (e) { showError("AI error: " + e.message); }
         setLoading(key, false);
     };
 
@@ -195,67 +247,101 @@ OUTPUT (comma-separated list only):
         const key = "soft_skills";
         setLoading(key, true);
         try {
-            const expDetails = exps.map(e => `${e.jobTitle} at ${e.company}`).join(", ") || "N/A";
+            const expDetails = exps
+                .map(e => `${e.jobTitle} at ${e.company}`)
+                .join(", ") || "N/A";
+
+            const existingSkills = skls.softSkills
+                ? `ALREADY LISTED — DO NOT INCLUDE ANY OF THESE: ${skls.softSkills}`
+                : "";
+
             const targetContext = resumeInfo.resumeGoal?.mode === "targeted" && resumeInfo.resumeGoal?.targetJobTitle
-                ? `TARGET ROLE: ${resumeInfo.resumeGoal.targetJobTitle}\nJOB DESCRIPTION: ${resumeInfo.resumeGoal.targetJobDescription}\nCRITICAL: Analyze the job description and extract the most requested soft skills and traits.`
-                : `- Job Title: ${pi.jobTitle || "N/A"}`;
+                ? `Target job title: ${resumeInfo.resumeGoal.targetJobTitle}
+Job description (extract the most valued interpersonal traits and work-style keywords from this): ${resumeInfo.resumeGoal.targetJobDescription}`
+                : `Candidate's current/target role: ${pi.jobTitle || "N/A"}`;
 
-            const text = await gemini(`
-ROLE: You are a career coach and resume expert who understands what soft skills matter most for different roles and industries.
+            const text = await askAI(`
+[SYSTEM] You are a career coach and resume strategist. Output ONLY a comma-separated list. No numbering, no bullets, no headers, no explanation, no extra text whatsoever.
 
-TASK: Suggest exactly 6 soft skills for this candidate's resume.
+[TASK] Generate exactly 6 soft skills for this candidate's resume.
 
-STRICT RULES:
-- Skills must be specific and professional — not generic
-- GOOD examples: Cross-functional collaboration, Stakeholder communication, Data-driven decision making, Agile project management, Conflict resolution, Executive presentation
-- BAD examples: "Teamwork", "Hard worker", "Good communicator", "Fast learner"
-- Choose skills that are RELEVANT to the role and would appear in real job descriptions
-- Do NOT repeat skills already listed
-- Output format: plain comma-separated list on ONE line, nothing else. DO NOT cut off formatting.
+[RULES]
+- Every skill must be a specific, professional 2-5 word phrase used in real job descriptions.
+- ALLOWED: Cross-functional collaboration, Stakeholder communication, Data-driven decision making, Agile project management, Conflict resolution, Executive presentation, Iterative feedback integration
+- NOT ALLOWED: "Teamwork", "Hard worker", "Good communicator", "Fast learner", "Motivated", "Team player"
+- The skills must feel natural and tailored to the specific role — not copy-pasted generic resume filler.
+- If a job description is provided, at least 3 skills must reflect traits explicitly or implicitly valued in that description.
+- Each skill must be 2-5 words. No descriptions, no parentheses, no explanations next to the skill.
+- You MUST output all 6. Do not stop early.
+- ${existingSkills}
 
-CANDIDATE PROFILE:
-${targetContext}
-- Experience: ${expDetails}
-- Already listed (DO NOT repeat): ${skls.softSkills || "none"}
+[CANDIDATE]
+Role context: ${targetContext}
+Experience: ${expDetails}
 
-OUTPUT (comma-separated list only):
-            `.trim());
-            updateSkills("softSkills", text.replace(/\.$/, "").trim());
-        } catch (e) { alert("AI error: " + e.message); }
+[OUTPUT - comma-separated list of exactly 6 skills, nothing else]
+`.trim());
+
+            const cleaned = text
+                .replace(/^[^a-zA-Z]+/, "")
+                .replace(/\n/g, ", ")
+                .replace(/\d+\.\s*/g, "")
+                .replace(/[-•*]\s*/g, "")
+                .replace(/\s{2,}/g, " ")
+                .replace(/,\s*,/g, ",")
+                .replace(/\.$/, "")
+                .trim();
+
+            updateSkills("softSkills", cleaned);
+        } catch (e) { showError("AI error: " + e.message); }
         setLoading(key, false);
     };
 
     const suggestProjDesc = async (proj) => {
-        if (!proj.projectName) return alert("Fill in the Project Name first.");
+        if (!proj.projectName) return showError("Fill in the Project Name first.");
         const key = `proj_${proj.id}`;
         setLoading(key, true);
         try {
             const targetContext = resumeInfo.resumeGoal?.mode === "targeted" && resumeInfo.resumeGoal?.targetJobTitle
-                ? `TARGET ROLE: ${resumeInfo.resumeGoal.targetJobTitle}\nJOB DESCRIPTION: ${resumeInfo.resumeGoal.targetJobDescription}\nCRITICAL INSTRUCTION: Tailor the project description to directly align with the requirements and technologies mentioned in the job description.`
-                : `Developer Role: ${pi.jobTitle || "N/A"}`;
+                ? `Target job title: ${resumeInfo.resumeGoal.targetJobTitle}
+Job description (mirror relevant technologies and keywords from this naturally): ${resumeInfo.resumeGoal.targetJobDescription}`
+                : `Candidate's current/target role: ${pi.jobTitle || "N/A"}`;
 
-            const text = await gemini(`
-You are an expert technical resume writer. Your task is to write compelling sentences for a candidate's personal or academic project.
+            const candidateSkills = allSkills.slice(0, 8).join(", ") || "N/A";
+            const projectLink = proj.projectLink ? `Project URL: ${proj.projectLink}` : "";
 
-Write exactly 2 professional sentences describing the project below.
-1. Provide exactly 2 lines, with each line being a complete sentence. DO NOT use bullet points (•), dashes, asterisks, or markdown.
-2. Content (Sentence 1): Describe what the project is and the core technologies used.
-3. Content (Sentence 2): Describe a specific technical challenge solved or feature implemented.
-4. Completeness: CRITICAL: Ensure every sentence is a FULL, COMPLETE thought and always ends with a proper period. Do not cut off early.
+            const text = await askAI(`
+[SYSTEM] You are a professional technical resume writer. Output ONLY the project description. No greetings, no explanations, no labels, no bullet points, no markdown.
 
-Project Name: ${proj.projectName}
-Link: ${proj.projectLink || "N/A"}
+[TASK] Write exactly 2 sentences describing this candidate's project for their resume.
+
+[RULES]
+- Sentence 1: State what the project does and name the specific technologies, frameworks, or languages used to build it. Start with a past-tense action verb (Built, Developed, Engineered, Designed, Architected).
+- Sentence 2: Describe one concrete technical challenge solved, a key feature implemented, or a measurable outcome (performance gain, users served, uptime, load time, etc.). Start with a different past-tense action verb.
+- Both sentences must be fully grammatically complete and end with a period.
+- Pull technologies from the candidate's skill set where naturally applicable — do not invent unrelated stacks.
+- If a target role is provided, reflect 1-2 keywords or technologies from the job description naturally.
+- NEVER use: "various", "multiple", "several", "innovative", "cutting-edge", "state-of-the-art", "robust", "scalable solution".
+- Each sentence should be 20-35 words. Concise but technically specific.
+- Output ONLY 2 sentences. Nothing before, nothing after.
+
+[PROJECT]
+Project name: ${proj.projectName}
+${projectLink}
+Candidate's known skills (use these where relevant): ${candidateSkills}
 ${targetContext}
-Candidate Skills: ${allSkills.slice(0, 8).join(", ") || "N/A"}
+
+[OUTPUT - 2 SENTENCES ONLY]
 `.trim());
-            const cleaned = text
-                .split("\n")
-                .map(l => l.replace(/^[\s\-•*\d.]+/, "").trim())
-                .filter(Boolean)
-                .slice(0, 2)
-                .join("\n");
-            updateProject(proj.id, "projectDescription", cleaned);
-        } catch (e) { alert("AI error: " + e.message); }
+
+            const sentences = text
+                .split(/(?<=[.!?])\s+/)
+                .map(s => s.replace(/^[\s\-•*\d.)]+/, "").trim())
+                .filter(s => s.length > 20 && /[A-Z]/.test(s[0]));
+
+            const result = sentences.slice(0, 2).join(" ");
+            updateProject(proj.id, "projectDescription", result || text.trim());
+        } catch (e) { showError("AI error: " + e.message); }
         setLoading(key, false);
     };
 
@@ -268,24 +354,17 @@ Candidate Skills: ${allSkills.slice(0, 8).join(", ") || "N/A"}
             const eduDetails = edus.map(e => `${e.degree} from ${e.school}`).join(", ") || "N/A";
             const numJobs = exps.length;
             const targetContext = resumeInfo.resumeGoal?.mode === "targeted" && resumeInfo.resumeGoal?.targetJobTitle
-                ? `TARGET ROLE: ${resumeInfo.resumeGoal.targetJobTitle}\nJOB DESCRIPTION: ${resumeInfo.resumeGoal.targetJobDescription}\nCRITICAL: Strongly tailor this summary to the provided job description keywords.`
+                ? `TARGET ROLE: ${resumeInfo.resumeGoal.targetJobTitle}\nJOB DESCRIPTION: ${resumeInfo.resumeGoal.targetJobDescription}\nCRITICAL: YOU MUST EXTRACT AND USE EXACT KEYWORDS from the job description to bypass ATS. Generate concise sentences under 60 words total. Do NOT cut off mid-sentence.`
                 : `- Job Title: ${pi.jobTitle || "N/A"}`;
 
-            const text = await gemini(`
-You are a professional resume writer. Write a realistic, grounded professional summary — based only on what the candidate has actually done.
+            const text = await askAI(`
+You are an elite career strategist. Write a realistic, compelling, 2-sentence professional summary for this candidate.
+1. Sentence 1: State their core area of expertise and professional title.
+2. Sentence 2: State their best actual skills and what outcomes they drove based strictly on the data below.
+3. Keep the tone professional and confident.
+4. Output one fully complete paragraph. Do not use random hardware word count limits that cause you to cut off natively. Ensure the sentences finish.
 
-Write a 3-sentence professional summary for this candidate.
-
-RULES:
-1. Sentence 1: Mention their job title and their core area of expertise. Do NOT invent years of experience — only use the number if it can be calculated from the work history dates provided. If dates are missing just say "experienced" or "professional".
-2. Sentence 2: Mention 2–3 of their actual skills from the skills list + reference what they actually did in their roles. Be specific to their real background.
-3. Sentence 3: A confident closing statement about the value they bring. Forward-looking, specific to their field.
-4. Total Length: Strictly one paragraph. Limit to 60-80 words to ensure it fits output limits.
-5. Tone: Professional, confident, no "I" — start with their role or a descriptor.
-6. Completeness: CRITICAL: Ensure the full thought is completed and ends with a proper period. Never stop mid-sentence.
-7. Output: one paragraph of plain text only — no labels, no quotes, no bullet points, nothing else.
-
-CANDIDATE:
+CANDIDATE DATA:
 ${targetContext}
 - Work history: ${expDetails}
 - Education: ${eduDetails}
@@ -297,13 +376,13 @@ ${targetContext}
                 .replace(/["']$/g, "")
                 .trim();
             updateSummary(cleaned);
-        } catch (e) { alert("AI error: " + e.message); }
+        } catch (e) { showError("AI error: " + e.message); }
         setLoading("summary", false);
     };
 
     const analyzeATS = async () => {
         if (resumeInfo.resumeGoal?.mode !== "targeted" || !resumeInfo.resumeGoal?.targetJobDescription) {
-            alert("You must select 'Targeted (Specific Job)' in Step 1 and provide a Target Job Description to use the ATS Scanner.");
+            showError("You must select 'Targeted (Specific Job)' in Step 1 and provide a Target Job Description to use the ATS Scanner.");
             return;
         }
         setAtsLoading(true);
@@ -315,31 +394,82 @@ ${targetContext}
                 experience: exps.map(e => ({ title: e.jobTitle, desc: e.description })),
                 education: edus.map(e => ({ degree: e.degree, desc: e.description })),
             });
-            const text = await gemini(`
-You are an expert ATS (Applicant Tracking System) scanner. I will provide a Resume JSON and a Target Job Description.
-Compare them strictly based on keyword matching.
+            const text = await askAI(`
+You are a strict algorithmic ATS (Applicant Tracking System) scanner. 
+Calculate the resume score using this exact formula:
+1. Exact Skill Matches (50% weight): Does the resume contain the exact technical tools mentioned?
+2. Context/Experience (30% weight): Are those skills used in the experience context?
+3. Action Verbs & Outcomes (20% weight): Does the resume use quantifiable metrics?
+
 Target Job Description:
 ${resumeInfo.resumeGoal.targetJobDescription}
 
 Resume Data:
 ${resumeTextDump}
 
-Output EXACTLY a valid JSON object with no markdown formatting or backticks. It must parse cleanly. Format:
+CRITICAL RULES FOR JSON OUTPUT:
+1. Output EXACTLY a valid JSON object and NOTHING else.
+2. DO NOT wrap the output in markdown blocks or backticks.
+3. If you need to use quotes inside the feedback string, use single quotes (') NOT double quotes.
+4. DO NOT use line breaks/newlines inside string values.
+
+Format:
 {
-  "score": <number between 0 and 100>,
-  "missingKeywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"],
-  "feedback": "Two sentences of constructive feedback."
+  "score": <number between 0 and 100 based strictly on the math formula>,
+  "missingKeywords": ["keyword1", "keyword2"],
+  "feedback": "One exact sentence explaining score without newlines."
 }
             `.trim());
-            let cleanJson = text.trim();
-            if (cleanJson.startsWith("\`\`\`json")) cleanJson = cleanJson.substring(7);
-            if (cleanJson.startsWith("\`\`\`")) cleanJson = cleanJson.substring(3);
-            if (cleanJson.endsWith("\`\`\`")) cleanJson = cleanJson.substring(0, cleanJson.length - 3);
-            cleanJson = cleanJson.trim();
-            const parsed = JSON.parse(cleanJson);
+
+            let cleanJson = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
+            const startIdx = cleanJson.indexOf('{');
+            const endIdx = cleanJson.lastIndexOf('}');
+            if (startIdx !== -1 && endIdx !== -1) {
+                cleanJson = cleanJson.substring(startIdx, endIdx + 1);
+            }
+
+            cleanJson = cleanJson.replace(/[\n\r]+/g, " ");
+
+            let parsed;
+            try {
+                parsed = JSON.parse(cleanJson);
+
+                // CRITICAL FIX: If AI accidentally returns a string or null instead of an array, fix it to prevent React crash!
+                if (typeof parsed.missingKeywords === 'string') {
+                    parsed.missingKeywords = parsed.missingKeywords.split(',').map(s => s.trim());
+                } else if (!Array.isArray(parsed.missingKeywords)) {
+                    parsed.missingKeywords = [];
+                }
+
+                if (typeof parsed.score !== 'number') {
+                    parsed.score = parseInt(parsed.score, 10) || 50;
+                }
+            } catch (err) {
+                console.warn("Fast JSON parse failed, falling back to regex extraction:", err.message);
+
+                const scoreMatch = cleanJson.match(/"score"\s*:\s*(\d+)/i);
+                const score = scoreMatch ? parseInt(scoreMatch[1], 10) : 50;
+
+                let missingKeywords = [];
+                const keywordsMatch = cleanJson.match(/"missingKeywords"\s*:\s*\[(.*?)\]/i);
+                if (keywordsMatch && keywordsMatch[1]) {
+                    missingKeywords = keywordsMatch[1].split(',')
+                        .map(s => s.replace(/["']/g, '').trim())
+                        .filter(Boolean);
+                }
+
+                let feedback = "ATS Analysis complete. Ensure your keywords are fully optimized.";
+                const fbMatch = cleanJson.match(/"feedback"\s*:\s*"([^"]*)/i);
+                if (fbMatch && fbMatch[1]) {
+                    feedback = fbMatch[1];
+                }
+
+                parsed = { score, missingKeywords, feedback };
+            }
+
             setAtsResult(parsed);
         } catch (e) {
-            alert("ATS Analysis error: " + e.message);
+            showError("ATS Connection Error: " + e.message);
         }
         setAtsLoading(false);
     };
@@ -604,6 +734,7 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                 letter-spacing: 0.3px;
                 margin-bottom: 12px;
                 transition: opacity 0.2s;
+                text-align: center;
             }
             .btn-download:hover { opacity: 0.85; }
 
@@ -627,20 +758,44 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                     size: A4 portrait;
                     margin: 0; 
                 }
-                body {
-                    margin: 0;
-                    padding: 0;
-                    background: white;
+                body, html {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    background: white !important;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+                .builder-left {
+                    display: none !important;
+                }
+                .builder-right {
+                    width: 100% !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    display: block !important;
+                    height: auto !important;
+                    overflow: visible !important;
+                    background: transparent !important;
+                }
+                .builder-container {
+                    display: block !important;
+                    height: auto !important;
+                    background: transparent !important;
+                }
+                .scale-wrapper {
+                    transform: none !important;
+                    margin: 0 !important;
                 }
                 .cv-paper {
                     box-shadow: none !important;
-                    margin: 0 !important;
-                    padding: 10mm 15mm !important;
+                    margin: 0 auto !important;
+                    padding: 20mm !important;
                     width: 210mm !important;
-                    height: 297mm !important;
+                    min-height: 297mm !important;
+                    height: auto !important;
                     box-sizing: border-box;
-                    page-break-after: avoid;
-                    page-break-before: avoid;
+                    page-break-after: auto;
+                    page-break-before: auto;
                     transform: none !important;
                 }
             }
@@ -716,11 +871,11 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                 </ul>
 
                 <div style={{ marginTop: "30px", padding: "15px", borderTop: "2px solid var(--border-color)", textAlign: "center" }}>
-                    <button type="button" onClick={() => { 
-                        resetResumeInfo(); 
+                    <button type="button" onClick={() => {
+                        resetResumeInfo();
                         setActiveStep(1);
                         setAtsResult(null);
-                    }} style={{ background: "transparent", color: "#e84545", border: "1px solid #e84545", padding: "8px 15px", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }} onMouseEnter={e => {e.target.style.background="#fbf2f2"}} onMouseLeave={e => {e.target.style.background="transparent"}}>Start Over (Clear Data)</button>
+                    }} style={{ background: "transparent", color: "#e84545", border: "1px solid #e84545", padding: "8px 15px", borderRadius: "6px", fontSize: "12px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }} onMouseEnter={e => { e.target.style.background = "#fbf2f2" }} onMouseLeave={e => { e.target.style.background = "transparent" }}>Start Over (Clear Data)</button>
                 </div>
 
                 <div className="builder-left-content">
@@ -736,50 +891,50 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                                     <label>Resume Goal <span className="req">*</span></label>
                                     <div style={{ display: "flex", gap: "20px", marginTop: "10px", marginBottom: "15px" }}>
                                         <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", textTransform: "none", fontSize: "14px", fontWeight: "600", color: "var(--text-primary)" }}>
-                                            <input 
-                                                type="radio" 
-                                                name="resumeMode" 
+                                            <input
+                                                type="radio"
+                                                name="resumeMode"
                                                 style={{ cursor: "pointer", width: "16px", height: "16px" }}
-                                                checked={resumeInfo.resumeGoal?.mode === "global"} 
-                                                onChange={() => updateResumeGoal("mode", "global")} 
+                                                checked={resumeInfo.resumeGoal?.mode === "global"}
+                                                onChange={() => updateResumeGoal("mode", "global")}
                                             />
                                             Standard Resume
                                         </label>
                                         <label style={{ display: "flex", alignItems: "center", gap: "5px", cursor: "pointer", textTransform: "none", fontSize: "14px", fontWeight: "600", color: "var(--text-primary)" }}>
-                                            <input 
-                                                type="radio" 
-                                                name="resumeMode" 
+                                            <input
+                                                type="radio"
+                                                name="resumeMode"
                                                 style={{ cursor: "pointer", width: "16px", height: "16px" }}
-                                                checked={resumeInfo.resumeGoal?.mode === "targeted"} 
-                                                onChange={() => updateResumeGoal("mode", "targeted")} 
+                                                checked={resumeInfo.resumeGoal?.mode === "targeted"}
+                                                onChange={() => updateResumeGoal("mode", "targeted")}
                                             />
                                             Targeted (Specific Job)
                                         </label>
                                     </div>
-                                    
+
                                     {resumeInfo.resumeGoal?.mode === "targeted" && (
-                                        <div style={{ 
-                                            marginTop: "5px", 
-                                            padding: "20px", 
-                                            border: "1px dashed #e84545", 
-                                            borderRadius: "8px", 
-                                            display: "flex", 
-                                            flexDirection: "column", 
+                                        <div style={{
+                                            marginTop: "5px",
+                                            padding: "20px",
+                                            border: "1px dashed #e84545",
+                                            borderRadius: "8px",
+                                            display: "flex",
+                                            flexDirection: "column",
                                             gap: "15px",
                                             backgroundColor: "rgba(232, 69, 69, 0.03)"
                                         }}>
                                             <p style={{ margin: "0 0 5px 0", fontSize: "12px", fontWeight: "600", color: "var(--text-secondary)" }}>The AI will tailor all auto-generated content to match this exact role.</p>
-                                            <input 
-                                                type="text" 
-                                                placeholder="Target Job Title (e.g. Senior Frontend Engineer)" 
-                                                value={resumeInfo.resumeGoal.targetJobTitle} 
-                                                onChange={(e) => updateResumeGoal("targetJobTitle", e.target.value)} 
+                                            <input
+                                                type="text"
+                                                placeholder="Target Job Title (e.g. Senior Frontend Engineer)"
+                                                value={resumeInfo.resumeGoal.targetJobTitle}
+                                                onChange={(e) => updateResumeGoal("targetJobTitle", e.target.value)}
                                                 style={{ width: "100%", padding: "12px 15px", borderRadius: "6px", border: "1px solid var(--border-color)", fontFamily: "'Syne', sans-serif" }}
                                             />
-                                            <textarea 
-                                                placeholder="Paste the Target Job Description here..." 
-                                                value={resumeInfo.resumeGoal.targetJobDescription} 
-                                                onChange={(e) => updateResumeGoal("targetJobDescription", e.target.value)} 
+                                            <textarea
+                                                placeholder="Paste the Target Job Description here..."
+                                                value={resumeInfo.resumeGoal.targetJobDescription}
+                                                onChange={(e) => updateResumeGoal("targetJobDescription", e.target.value)}
                                                 style={{ width: "100%", padding: "12px 15px", borderRadius: "6px", border: "1px solid var(--border-color)", minHeight: "120px", resize: "vertical", fontFamily: "'Syne', sans-serif" }}
                                             ></textarea>
                                         </div>
@@ -895,14 +1050,14 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                         <>
                             <h1>Experience</h1>
                             <p>Add your work experience.</p>
-                            <span style={{ display: "block", width: "fit-content", color: "blue", cursor: "pointer", textDecoration: "underline" }} onClick={() => addExperience()}>+Add Experience</span>
+                            <span style={{ display: "block", width: "fit-content", color: "#e84545", cursor: "pointer", textDecoration: "underline" }} onClick={() => addExperience()}>+Add Experience</span>
 
                             {resumeInfo.experience.map((exp) => (
-                                <>
+                                <React.Fragment key={exp.id}>
                                     <span style={{ display: "flex", justifyContent: "right", color: "red", cursor: "pointer", textDecoration: "underline", fontSize: "12px", zIndex: "100" }} onClick={() => removeExperience(exp.id)}>Remove Experience</span>
                                     <div style={{ marginBottom: "20px" }}>
-                                        <AccordionUsage key={exp.id} title={`${exp.jobTitle || "Job Title"} | ${exp.company || "Company"}`}>
-                                            <form className="form-grid">
+                                        <AccordionUsage title={`${exp.jobTitle || "Job Title"} | ${exp.company || "Company"}`}>
+                                            <div className="form-grid">
                                                 <div className="form-group">
                                                     <label>Job Title</label>
                                                     <input type="text" placeholder="e.g. Frontend Developer" value={exp.jobTitle} onChange={(e) => updateExperience(exp.id, "jobTitle", e.target.value)} />
@@ -917,11 +1072,11 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                                                 </div>
                                                 <div className="form-group">
                                                     <label>Start Date</label>
-                                                    <input type="date" value={exp.startDate} onChange={(e) => updateExperience(exp.id, "startDate", e.target.value)} />
+                                                    <input type="text" placeholder="e.g. Sep 2020" value={exp.startDate} onChange={(e) => updateExperience(exp.id, "startDate", e.target.value)} />
                                                 </div>
                                                 <div className="form-group">
                                                     <label>End Date</label>
-                                                    <input type="date" value={exp.endDate} onChange={(e) => updateExperience(exp.id, "endDate", e.target.value)} />
+                                                    <input type="text" placeholder="e.g. Sep 2020" value={exp.endDate} onChange={(e) => updateExperience(exp.id, "endDate", e.target.value)} />
                                                 </div>
                                                 {/* ── Description + AI Suggest ── */}
                                                 <div className="form-group full-width">
@@ -936,10 +1091,10 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                                                         onChange={(e) => updateExperience(exp.id, "description", e.target.value)}
                                                     />
                                                 </div>
-                                            </form>
+                                            </div>
                                         </AccordionUsage>
                                     </div>
-                                </>
+                                </React.Fragment>
                             ))}
                             <div className="form-group full-width" style={{ display: "flex", justifyContent: "space-between", marginTop: "30px", flexDirection: "row-reverse" }}>
                                 <button type="button" className="btn-submit" onClick={() => setActiveStep(3)}>Save & Continue</button>
@@ -953,13 +1108,13 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                         <>
                             <h1>Education</h1>
                             <p>Add your education.</p>
-                            <span style={{ display: "block", color: "blue", cursor: "pointer", textDecoration: "underline" }} onClick={() => addEducation()}>+Add Education</span>
+                            <span style={{ display: "block", color: "#e84545", cursor: "pointer", textDecoration: "underline" }} onClick={() => addEducation()}>+Add Education</span>
                             {resumeInfo.education.map((edu) => (
-                                <>
+                                <React.Fragment key={edu.id}>
                                     <span style={{ display: "flex", justifyContent: "right", color: "red", cursor: "pointer", textDecoration: "underline", fontSize: "12px", zIndex: "100" }} onClick={() => removeEducation(edu.id)}>Remove Education</span>
                                     <div style={{ marginBottom: "20px" }}>
-                                        <AccordionUsage key={edu.id} title={`${edu.degree || "Degree"} | ${edu.school || "School"}`}>
-                                            <form className="form-grid">
+                                        <AccordionUsage title={`${edu.degree || "Degree"} | ${edu.school || "School"}`}>
+                                            <div className="form-grid">
                                                 <div className="form-group">
                                                     <label>Degree</label>
                                                     <input type="text" placeholder="e.g. Bachelor of Science" value={edu.degree} onChange={(e) => updateEducation(edu.id, "degree", e.target.value)} />
@@ -974,11 +1129,11 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                                                 </div>
                                                 <div className="form-group">
                                                     <label>Start Date</label>
-                                                    <input type="date" value={edu.startDate} onChange={(e) => updateEducation(edu.id, "startDate", e.target.value)} />
+                                                    <input type="text" placeholder="e.g. Sep 2020" value={edu.startDate} onChange={(e) => updateEducation(edu.id, "startDate", e.target.value)} />
                                                 </div>
                                                 <div className="form-group">
                                                     <label>End Date</label>
-                                                    <input type="date" value={edu.endDate} onChange={(e) => updateEducation(edu.id, "endDate", e.target.value)} />
+                                                    <input type="text" placeholder="e.g. Sep 2020" value={edu.endDate} onChange={(e) => updateEducation(edu.id, "endDate", e.target.value)} />
                                                 </div>
                                                 <div className="form-group full-width">
                                                     <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -987,10 +1142,10 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                                                     </label>
                                                     <textarea placeholder="e.g. Graduated with honors... or click ✦ AI Suggest" style={{ height: "100px", padding: "12px 15px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "15px", outline: "none", transition: "border-color 0.2s", resize: "vertical", fontFamily: "'Syne',sans-serif" }} value={edu.description} onChange={(e) => updateEducation(edu.id, "description", e.target.value)} />
                                                 </div>
-                                            </form>
+                                            </div>
                                         </AccordionUsage>
                                     </div>
-                                </>
+                                </React.Fragment>
                             ))}
                             <div className="form-group full-width" style={{ display: "flex", justifyContent: "space-between", marginTop: "30px", flexDirection: "row-reverse" }}>
                                 <button type="button" className="btn-submit" onClick={() => setActiveStep(4)}>Save & Continue</button>
@@ -1005,7 +1160,7 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                             <h1>Skills</h1>
                             <p>Add your skills.</p>
                             <div style={{ marginBottom: "20px" }}>
-                                <form className="form-grid">
+                                <div className="form-grid">
                                     {/* ── Technical Skills + AI ── */}
                                     <div className="form-group full-width">
                                         <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1022,7 +1177,7 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                                         </label>
                                         <textarea style={{ padding: "12px 15px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "15px", outline: "none", transition: "border-color 0.2s", fontFamily: "'Syne', sans-serif", resize: "vertical" }} placeholder="e.g. Communication, Teamwork" value={skls.softSkills} onChange={(e) => updateSkills("softSkills", e.target.value)} rows={3} />
                                     </div>
-                                </form>
+                                </div>
                             </div>
 
 
@@ -1038,13 +1193,13 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                         <>
                             <h1>Projects</h1>
                             <p>Add your projects.</p>
-                            <span style={{ display: "block", color: "blue", cursor: "pointer", textDecoration: "underline" }} onClick={() => addProject()}>+Add Project</span>
+                            <span style={{ display: "block", color: "#e84545", cursor: "pointer", textDecoration: "underline" }} onClick={() => addProject()}>+Add Project</span>
                             {resumeInfo.projects.map((project) => (
-                                <>
+                                <React.Fragment key={project.id}>
                                     <span style={{ display: "flex", justifyContent: "right", color: "red", cursor: "pointer", textDecoration: "underline", fontSize: "12px", zIndex: "100" }} onClick={() => removeProject(project.id)}>Remove Project</span>
                                     <div style={{ marginBottom: "20px" }}>
-                                        <AccordionUsage key={project.id} title={`${project.projectName || "Project Name"} | ${project.projectDescription || "Project Description"}`}>
-                                            <form className="form-grid">
+                                        <AccordionUsage title={`${project.projectName || "Project Name"} `}>
+                                            <div className="form-grid">
                                                 <div className="form-group">
                                                     <label>Project Name</label>
                                                     <input type="text" placeholder="e.g. Project Name" value={project.projectName} onChange={(e) => updateProject(project.id, "projectName", e.target.value)} />
@@ -1066,10 +1221,10 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                                                         onChange={(e) => updateProject(project.id, "projectDescription", e.target.value)}
                                                     />
                                                 </div>
-                                            </form>
+                                            </div>
                                         </AccordionUsage>
                                     </div>
-                                </>
+                                </React.Fragment>
                             ))}
                             <div className="form-group full-width" style={{ display: "flex", justifyContent: "space-between", marginTop: "30px", flexDirection: "row-reverse" }}>
                                 <button type="button" className="btn-submit" onClick={() => setActiveStep(6)}>Save & Continue</button>
@@ -1083,13 +1238,13 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                         <>
                             <h1>Languages</h1>
                             <p>Add your languages.</p>
-                            <span style={{ display: "block", color: "blue", cursor: "pointer", textDecoration: "underline" }} onClick={() => addLanguage()}>+Add Language</span>
+                            <span style={{ display: "block", color: "#e84545", cursor: "pointer", textDecoration: "underline" }} onClick={() => addLanguage()}>+Add Language</span>
                             {resumeInfo.languages.map((language) => (
-                                <>
+                                <React.Fragment key={language.id}>
                                     <span style={{ display: "flex", justifyContent: "right", color: "red", cursor: "pointer", textDecoration: "underline", fontSize: "12px", zIndex: "100" }} onClick={() => removeLanguage(language.id)}>Remove Language</span>
                                     <div style={{ marginBottom: "20px" }}>
-                                        <AccordionUsage key={language.id} title={`${language.languageName || "Language Name"} | ${language.languageProficiency || "Language Proficiency"}`}>
-                                            <form className="form-grid">
+                                        <AccordionUsage title={`${language.languageName || "Language Name"} | ${language.languageProficiency || "Language Proficiency"}`}>
+                                            <div className="form-grid">
                                                 <div className="form-group">
                                                     <label>Language Name</label>
                                                     <input type="text" placeholder="e.g. Language Name" value={language.languageName} onChange={(e) => updateLanguage(language.id, "languageName", e.target.value)} />
@@ -1098,10 +1253,10 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                                                     <label>Language Proficiency</label>
                                                     <input type="text" placeholder="e.g. Language Proficiency" value={language.languageProficiency} onChange={(e) => updateLanguage(language.id, "languageProficiency", e.target.value)} />
                                                 </div>
-                                            </form>
+                                            </div>
                                         </AccordionUsage>
                                     </div>
-                                </>
+                                </React.Fragment>
                             ))}
                             <div className="form-group full-width" style={{ display: "flex", justifyContent: "space-between", marginTop: "30px", flexDirection: "row-reverse" }}>
                                 <button type="button" className="btn-submit" onClick={() => setActiveStep(7)}>Save & Continue</button>
@@ -1164,9 +1319,9 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
 
                             <h3 style={{ fontSize: "16px", marginTop: 20, marginBottom: 15 }}>Select Template</h3>
                             <div style={{ display: 'flex', gap: '15px', marginBottom: '30px', flexWrap: 'wrap' }}>
-                                <button type="button" onClick={() => setSelectedTemplate('template1')} style={{ padding: '12px 24px', border: selectedTemplate === 'template1' ? '2px solid #e84545' : '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', background: selectedTemplate === 'template1' ? '#fff0f0' : 'white', fontWeight: 600, transition: 'all 0.2s', fontFamily: "'Syne', sans-serif" }}>Classic</button>
-                                <button type="button" onClick={() => setSelectedTemplate('template2')} style={{ padding: '12px 24px', border: selectedTemplate === 'template2' ? '2px solid #e84545' : '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', background: selectedTemplate === 'template2' ? '#fff0f0' : 'white', fontWeight: 600, transition: 'all 0.2s', fontFamily: "'Syne', sans-serif" }}>Modern (Blue)</button>
-                                <button type="button" onClick={() => setSelectedTemplate('template3')} style={{ padding: '12px 24px', border: selectedTemplate === 'template3' ? '2px solid #e84545' : '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', background: selectedTemplate === 'template3' ? '#fff0f0' : 'white', fontWeight: 600, transition: 'all 0.2s', fontFamily: "'Syne', sans-serif", letterSpacing: '1px' }}>MINIMALIST</button>
+                                <button type="button" onClick={() => setSelectedTemplate('template1')} style={{ padding: '12px 24px', border: selectedTemplate === 'template1' ? '2px solid #e84545' : '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer', background: selectedTemplate === 'template1' ? 'rgba(232,69,69,0.1)' : 'transparent', color: selectedTemplate === 'template1' ? '#e84545' : 'var(--text-primary)', fontWeight: 600, transition: 'all 0.2s', fontFamily: "'Syne', sans-serif" }}>Classic</button>
+                                <button type="button" onClick={() => setSelectedTemplate('template2')} style={{ padding: '12px 24px', border: selectedTemplate === 'template2' ? '2px solid #e84545' : '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer', background: selectedTemplate === 'template2' ? 'rgba(232,69,69,0.1)' : 'transparent', color: selectedTemplate === 'template2' ? '#e84545' : 'var(--text-primary)', fontWeight: 600, transition: 'all 0.2s', fontFamily: "'Syne', sans-serif" }}>Modern (Blue)</button>
+                                <button type="button" onClick={() => setSelectedTemplate('template3')} style={{ padding: '12px 24px', border: selectedTemplate === 'template3' ? '2px solid #e84545' : '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer', background: selectedTemplate === 'template3' ? 'rgba(232,69,69,0.1)' : 'transparent', color: selectedTemplate === 'template3' ? '#e84545' : 'var(--text-primary)', fontWeight: 600, transition: 'all 0.2s', fontFamily: "'Syne', sans-serif", letterSpacing: '1px' }}>MINIMALIST</button>
                             </div>
 
                             <PDFDownloadLink
@@ -1187,7 +1342,7 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                                 />}
                                 fileName={pi.fullName ? `${pi.fullName.replace(/\s+/g, '_')}_Resume.pdf` : "resume.pdf"}
                                 className="btn-download"
-                                style={{ textDecoration: 'none', display: 'inline-block' }}
+                                style={{ textDecoration: 'none', display: 'inline-block', 'marginLeft': '20px' }}
                             >
                                 {({ loading }) => (loading ? 'Preparing Document...' : '↓ Download PDF')}
                             </PDFDownloadLink>
@@ -1197,7 +1352,7 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                                 <div style={{ marginTop: "40px", padding: "20px", border: "1px solid var(--border-color)", borderRadius: "8px", backgroundColor: "rgba(232, 69, 69, 0.03)" }}>
                                     <h3 style={{ fontSize: "18px", marginBottom: "10px", color: "var(--text-primary)" }}>ATS Keyword Scanner</h3>
                                     <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "15px" }}>See how well your resume matches the target job description.</p>
-                                    
+
                                     {!atsResult ? (
                                         <button type="button" onClick={analyzeATS} disabled={atsLoading} style={{ padding: "10px 20px", background: "#e84545", color: "white", borderRadius: "6px", border: "none", cursor: "pointer", fontWeight: "600", opacity: atsLoading ? 0.7 : 1 }}>
                                             {atsLoading ? "Analyzing Match..." : "✦ Run ATS Scan"}
@@ -1214,7 +1369,7 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                                                 </div>
                                             </div>
                                             <p style={{ fontSize: "15px", lineHeight: "1.6", marginBottom: "15px", color: "var(--text-primary)" }}>{atsResult.feedback}</p>
-                                            
+
                                             {atsResult.missingKeywords && atsResult.missingKeywords.length > 0 && (
                                                 <div style={{ marginTop: "20px", padding: "15px", backgroundColor: "rgba(239, 68, 68, 0.05)", borderRadius: "6px", borderLeft: "4px solid #ef4444" }}>
                                                     <strong style={{ display: "block", fontSize: "14px", color: "#ef4444", marginBottom: "10px" }}>Missing Keywords to Add to Your Resume:</strong>
@@ -1225,9 +1380,9 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                                                     </div>
                                                 </div>
                                             )}
-                                            
-                                            <button type="button" onClick={analyzeATS} disabled={atsLoading} style={{ marginTop: "20px", padding: "8px 16px", background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border-color)", borderRadius: "6px", fontSize: "14px", cursor: atsLoading ? "not-allowed" : "pointer", fontWeight: "600", transition: "all 0.2s" }} onMouseEnter={e => {e.target.style.background="var(--border-color)"}} onMouseLeave={e => {e.target.style.background="transparent"}}>
-                                               {atsLoading ? "Rescanning..." : "Rescan Resume"}
+
+                                            <button type="button" onClick={analyzeATS} disabled={atsLoading} style={{ marginTop: "20px", padding: "8px 16px", background: "transparent", color: "var(--text-secondary)", border: "1px solid var(--border-color)", borderRadius: "6px", fontSize: "14px", cursor: atsLoading ? "not-allowed" : "pointer", fontWeight: "600", transition: "all 0.2s" }} onMouseEnter={e => { e.target.style.background = "var(--border-color)" }} onMouseLeave={e => { e.target.style.background = "transparent" }}>
+                                                {atsLoading ? "Rescanning..." : "Rescan Resume"}
                                             </button>
                                         </div>
                                     )}
@@ -1241,65 +1396,65 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
 
                             {/* Certifications */}
                             <h3 style={{ marginTop: 20, marginBottom: 10, borderBottom: "1px solid #ddd", paddingBottom: 5 }}>Certifications</h3>
-                            <span style={{ display: "block", color: "blue", cursor: "pointer", textDecoration: "underline", marginBottom: 15 }} onClick={() => addCertification()}>+Add Certification</span>
+                            <span style={{ display: "block", color: "#e84545", cursor: "pointer", textDecoration: "underline", marginBottom: 15 }} onClick={() => addCertification()}>+Add Certification</span>
                             {resumeInfo.certifications.map((cert) => (
                                 <div key={cert.id} style={{ marginBottom: "20px" }}>
                                     <span style={{ display: "flex", justifyContent: "right", color: "red", cursor: "pointer", textDecoration: "underline", fontSize: "12px", zIndex: "100" }} onClick={() => removeCertification(cert.id)}>Remove Certification</span>
                                     <AccordionUsage title={`${cert.name || "Certification Name"} | ${cert.issuer || "Issuer"}`}>
-                                        <form className="form-grid">
+                                        <div className="form-grid">
                                             <div className="form-group"><label>Certification Name</label><input type="text" placeholder="e.g. AWS Certified Solutions Architect" value={cert.name} onChange={(e) => updateCertification(cert.id, "name", e.target.value)} /></div>
                                             <div className="form-group"><label>Issuer</label><input type="text" placeholder="e.g. Amazon Web Services" value={cert.issuer} onChange={(e) => updateCertification(cert.id, "issuer", e.target.value)} /></div>
                                             <div className="form-group"><label>Date / Year</label><input type="text" placeholder="e.g. 2023" value={cert.date} onChange={(e) => updateCertification(cert.id, "date", e.target.value)} /></div>
-                                        </form>
+                                        </div>
                                     </AccordionUsage>
                                 </div>
                             ))}
 
                             {/* Awards */}
                             <h3 style={{ marginTop: 30, marginBottom: 10, borderBottom: "1px solid #ddd", paddingBottom: 5 }}>Awards & Achievements</h3>
-                            <span style={{ display: "block", color: "blue", cursor: "pointer", textDecoration: "underline", marginBottom: 15 }} onClick={() => addAward()}>+Add Award</span>
+                            <span style={{ display: "block", color: "#e84545", cursor: "pointer", textDecoration: "underline", marginBottom: 15 }} onClick={() => addAward()}>+Add Award</span>
                             {resumeInfo.awards.map((award) => (
                                 <div key={award.id} style={{ marginBottom: "20px" }}>
                                     <span style={{ display: "flex", justifyContent: "right", color: "red", cursor: "pointer", textDecoration: "underline", fontSize: "12px", zIndex: "100" }} onClick={() => removeAward(award.id)}>Remove Award</span>
                                     <AccordionUsage title={`${award.title || "Award Title"} | ${award.awarder || "Organization"}`}>
-                                        <form className="form-grid">
+                                        <div className="form-grid">
                                             <div className="form-group"><label>Award Title</label><input type="text" placeholder="e.g. Employee of the Month" value={award.title} onChange={(e) => updateAward(award.id, "title", e.target.value)} /></div>
                                             <div className="form-group"><label>Organization / Issuer</label><input type="text" placeholder="e.g. Google" value={award.awarder} onChange={(e) => updateAward(award.id, "awarder", e.target.value)} /></div>
                                             <div className="form-group"><label>Date / Year</label><input type="text" placeholder="e.g. 2022" value={award.date} onChange={(e) => updateAward(award.id, "date", e.target.value)} /></div>
                                             <div className="form-group full-width"><label>Description</label><textarea style={{ padding: "12px 15px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "15px", outline: "none", fontFamily: "'Syne', sans-serif" }} placeholder="Briefly describe the award" value={award.description} onChange={(e) => updateAward(award.id, "description", e.target.value)} /></div>
-                                        </form>
+                                        </div>
                                     </AccordionUsage>
                                 </div>
                             ))}
 
                             {/* References */}
                             <h3 style={{ marginTop: 30, marginBottom: 10, borderBottom: "1px solid #ddd", paddingBottom: 5 }}>References</h3>
-                            <span style={{ display: "block", color: "blue", cursor: "pointer", textDecoration: "underline", marginBottom: 15 }} onClick={() => addReference()}>+Add Reference</span>
+                            <span style={{ display: "block", color: "#e84545", cursor: "pointer", textDecoration: "underline", marginBottom: 15 }} onClick={() => addReference()}>+Add Reference</span>
                             {resumeInfo.references.map((ref) => (
                                 <div key={ref.id} style={{ marginBottom: "20px" }}>
                                     <span style={{ display: "flex", justifyContent: "right", color: "red", cursor: "pointer", textDecoration: "underline", fontSize: "12px", zIndex: "100" }} onClick={() => removeReference(ref.id)}>Remove Reference</span>
                                     <AccordionUsage title={`${ref.name || "Reference Name"} | ${ref.company || "Company"}`}>
-                                        <form className="form-grid">
+                                        <div className="form-grid">
                                             <div className="form-group"><label>Full Name</label><input type="text" placeholder="e.g. Jane Doe" value={ref.name} onChange={(e) => updateReference(ref.id, "name", e.target.value)} /></div>
                                             <div className="form-group"><label>Job Title</label><input type="text" placeholder="e.g. Senior Manager" value={ref.position} onChange={(e) => updateReference(ref.id, "position", e.target.value)} /></div>
                                             <div className="form-group"><label>Company</label><input type="text" placeholder="e.g. Acme Corp" value={ref.company} onChange={(e) => updateReference(ref.id, "company", e.target.value)} /></div>
                                             <div className="form-group"><label>Contact Info</label><input type="text" placeholder="e.g. jane@example.com / +12345" value={ref.contactInfo} onChange={(e) => updateReference(ref.id, "contactInfo", e.target.value)} /></div>
-                                        </form>
+                                        </div>
                                     </AccordionUsage>
                                 </div>
                             ))}
 
                             {/* Custom Sections */}
                             <h3 style={{ marginTop: 30, marginBottom: 10, borderBottom: "1px solid #ddd", paddingBottom: 5 }}>Custom Section</h3>
-                            <span style={{ display: "block", color: "blue", cursor: "pointer", textDecoration: "underline", marginBottom: 15 }} onClick={() => addCustomSection()}>+Add Custom Section</span>
+                            <span style={{ display: "block", color: "#e84545", cursor: "pointer", textDecoration: "underline", marginBottom: 15 }} onClick={() => addCustomSection()}>+Add Custom Section</span>
                             {resumeInfo.customSections.map((sec) => (
                                 <div key={sec.id} style={{ marginBottom: "20px" }}>
                                     <span style={{ display: "flex", justifyContent: "right", color: "red", cursor: "pointer", textDecoration: "underline", fontSize: "12px", zIndex: "100" }} onClick={() => removeCustomSection(sec.id)}>Remove Section</span>
                                     <AccordionUsage title={`${sec.sectionTitle || "Custom Section Title"}`}>
-                                        <form className="form-grid">
+                                        <div className="form-grid">
                                             <div className="form-group full-width"><label>Section Title</label><input type="text" placeholder="e.g. Publications, Volunteering" value={sec.sectionTitle} onChange={(e) => updateCustomSection(sec.id, "sectionTitle", e.target.value)} /></div>
                                             <div className="form-group full-width"><label>Description / Details</label><textarea style={{ height: "100px", padding: "12px 15px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "15px", outline: "none", fontFamily: "'Syne', sans-serif" }} placeholder="List details separated by new lines for bullets" value={sec.description} onChange={(e) => updateCustomSection(sec.id, "description", e.target.value)} /></div>
-                                        </form>
+                                        </div>
                                     </AccordionUsage>
                                 </div>
                             ))}
@@ -1314,7 +1469,7 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
             </div>
 
             <div className="builder-right">
-                <div style={{ transform: "scale(0.85)", transformOrigin: "top center", marginBottom: "-40mm" }}>
+                <div className="scale-wrapper" style={{ transform: "scale(0.85)", transformOrigin: "top center", marginBottom: "-40mm" }}>
                     <ResumeTemplate
                         personalInfo={resumeInfo.personalInfo}
                         experience={resumeInfo.experience}
@@ -1332,6 +1487,17 @@ Output EXACTLY a valid JSON object with no markdown formatting or backticks. It 
                     />
                 </div>
             </div>
+
+            {toastError && (
+                <div style={{
+                    position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
+                    backgroundColor: "#e84545", color: "white", padding: "12px 24px",
+                    borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                    zIndex: 9999, fontWeight: 600, fontSize: "14px", display: "flex", alignItems: "center", gap: "8px"
+                }}>
+                    <span>⚠️</span> {toastError}
+                </div>
+            )}
         </div>
     );
 };

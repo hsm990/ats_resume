@@ -37,10 +37,10 @@ const Info = {
 export const InfoProvider = ({ children }) => {
     const getInitialState = () => {
         try {
-            const saved = localStorage.getItem("atsResumeData");
+            const saved = sessionStorage.getItem("atsResumeData");
             if (saved) return JSON.parse(saved);
         } catch (e) {
-            console.error("Failed to load resume from localStorage", e);
+            console.error("Failed to load resume from sessionStorage", e);
         }
         return Info;
     };
@@ -48,13 +48,13 @@ export const InfoProvider = ({ children }) => {
     const [resumeInfo, setResumeInfo] = useState(getInitialState);
 
     useEffect(() => {
-        localStorage.setItem("atsResumeData", JSON.stringify(resumeInfo));
+        sessionStorage.setItem("atsResumeData", JSON.stringify(resumeInfo));
     }, [resumeInfo]);
 
     const resetResumeInfo = () => {
         if (window.confirm("Are you sure you want to clear your entire resume and start over? This cannot be undone.")) {
             setResumeInfo(Info);
-            localStorage.removeItem("atsResumeData");
+            sessionStorage.removeItem("atsResumeData");
         }
     };
 

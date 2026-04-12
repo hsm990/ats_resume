@@ -9,33 +9,17 @@ export const Navbar = () => (
                 display: flex;
                 width: 100%;
                 padding: 16px 80px;
-                justify-content: center;
-                gap: 128px;
+                justify-content: space-between;
                 align-items: center;
                 border-bottom: 1px solid var(--border-color, #e5e7eb);
                 background-color: var(--bg-primary);
                 transition: background-color 0.3s ease, border-color 0.3s ease;
             }
-            .navbar-logo {
-                font-weight: 700;
-                font-size: 24px;
-            }
-            .navbar-links {
-                display: flex;
-                gap: 24px;
-                align-items: center;
-                justify-content: center;
-            }
-            .navbar-link {
-                font-family: 'Instrument Serif', serif;
-                color: var(--text-secondary);
-                font-size: 21px;
-                transition: color 0.3s ease;
-                text-decoration: none;
-                font-weight: 500;
-            }
-            .navbar-link:hover {
-                color: var(--text-primary);
+            .logo-text {
+                font-family: 'Syne', sans-serif;
+                font-weight: 800;
+                font-size: 28px;
+                letter-spacing: -1px;
             }
             .navbar-actions {
                 display: flex;
@@ -46,23 +30,18 @@ export const Navbar = () => (
 
             @media (max-width: 768px) {
                 .navbar {
-                    gap: 20px;
                     padding: 16px 20px;
-                }
-                .navbar-links {
                     flex-wrap: wrap;
-                    gap: 16px;
+                }
+                .logo-text {
+                    font-size: 22px;
                 }
             }
         `}</style>
         <nav className="navbar">
-            <Link to="/" className="navbar-logo">
-                <img src={logo} alt="Logo" style={{ width: "100px", height: "50px", border: "1px solid var(--border-color)" }} />
+            <Link to="/" className="navbar-logo" style={{ textDecoration: 'none', color: 'var(--text-primary)' }}>
+                <span className="logo-text">Your<span style={{ color: '#e84545' }}> career</span></span>
             </Link>
-
-            <div className="navbar-links">
-                <Link to="/contact" className="navbar-link">Contact Us</Link>
-            </div>
 
             <div className="navbar-actions">
                 <Switch />

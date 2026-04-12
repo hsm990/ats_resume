@@ -20,8 +20,13 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
 
     const fmt = (d) => {
         if (!d) return "";
-        const [y, m] = d.split("-");
-        return ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][+m - 1] + " " + y;
+        if (typeof d !== 'string') return d;
+        const pts = d.split("-");
+        if (pts.length < 2) return d;
+        const [y, m] = pts;
+        const mIdx = parseInt(m, 10) - 1;
+        if (isNaN(mIdx) || mIdx < 0 || mIdx > 11) return d;
+        return ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][mIdx] + " " + y;
     };
 
     const toBullets = (text) => {
@@ -60,7 +65,7 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
                     margin: 0 0 1px;
                     line-height: 1.15;
                     ${templateId === 'template2' ? `color: #1e3a8a; text-transform: uppercase; font-weight: 800;` : 'color: #000;'}
-                    ${templateId === 'template3' ? `color: #333; letter-spacing: 1.5px; border-bottom: 2px solid #333; padding-bottom: 4px;` : ''}
+                    ${templateId === 'template3' ? `color: #333; letter-spacing: 2px; text-transform: uppercase;` : ''}
                 }
                 .cv-job-title {
                     font-size: 12px;
@@ -193,9 +198,14 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
                     <div className="cv-empty">Preview will appear here</div>
                 ) : (
                     <>
-                        <div style={{ textAlign: "center", marginBottom: "12px" }}>
-                            <h1 className="cv-name" style={{ fontSize: "24px", marginBottom: "4px" }}>{pi.fullName || "Your Name"}</h1>
-                            {pi.jobTitle && <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "8px" }}>{pi.jobTitle}</div>}
+                        <div style={{ 
+                            textAlign: "center", 
+                            marginBottom: "16px",
+                            paddingBottom: templateId === 'template3' ? "12px" : "0",
+                            borderBottom: templateId === 'template3' ? "1px solid #333" : "none"
+                        }}>
+                            <h1 className="cv-name" style={{ fontSize: "24px", marginBottom: "6px" }}>{pi.fullName || "Your Name"}</h1>
+                            {pi.jobTitle && <div style={{ fontSize: "14px", fontWeight: "bold", marginBottom: "10px" }}>{pi.jobTitle}</div>}
 
                             <div style={{ fontSize: "11.5px", color: "#111", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "6px" }}>
                                 {pi.address && <span>{pi.address}</span>}

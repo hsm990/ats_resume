@@ -17,7 +17,7 @@ const Hero = () => {
     <>
       <style>{`
         .hero {
-            height: 600px;
+            max-height: 600px;
             display: flex;
             align-items: center;
             justify-content: start;
@@ -221,15 +221,20 @@ const Hero = () => {
               }
       `}</style>
       <div className="hero">
-        <span className="span" >AI-Powered Resume Optimization</span>
-        <h1 style={{ marginTop: "25px" }}>BEAT</h1>
-        <h1>THE <span className="h1-span">ATS</span></h1>
+        <span className="span" >Next-Generation Career Tools</span>
+        <h1 style={{ marginTop: "25px" }}>ELEVATE</h1>
+        <h1>YOUR <span className="h1-span">POTENTIAL</span></h1>
         <h1 className="hero-title-outline">LAND</h1>
         <h1>THE JOB.</h1>
         <div className="button-container">
           <Link to="/services" style={{ textDecoration: 'none' }}>
             <button className="button first">
-              <span>✦ Explore Services</span>
+              <span>Explore Services</span>
+            </button>
+          </Link>
+          <Link to="/contact" style={{ textDecoration: 'none' }}>
+            <button className="button second">
+              <span>Contact Us</span>
             </button>
           </Link>
         </div>

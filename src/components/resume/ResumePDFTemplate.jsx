@@ -12,31 +12,35 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
     const getSecondaryColor = (tId) => tId === 'template2' ? '#475569' : '#111111';
 
     const styles = React.useMemo(() => StyleSheet.create({
-        page: { padding: '20mm', fontFamily: getFontFamily(templateId), fontSize: 11.5, lineHeight: 1.45, color: '#111' },
-        header: { textAlign: 'center', marginBottom: 12 },
-        name: { 
-            fontSize: 24, 
-            fontFamily: getBoldFontFamily(templateId), 
-            marginBottom: 4, 
-            color: getPrimaryColor(templateId),
-            textTransform: templateId === 'template2' ? 'uppercase' : 'none',
-            borderBottomWidth: templateId === 'template3' ? 2 : 0,
+        page: { padding: '20mm', fontFamily: getFontFamily(templateId), fontSize: 9, lineHeight: 1.45, color: '#111' },
+        header: { 
+            textAlign: 'center', 
+            marginBottom: 12.5, 
+            paddingBottom: templateId === 'template3' ? 9 : 0,
+            borderBottomWidth: templateId === 'template3' ? 1 : 0,
             borderBottomColor: '#333',
-            paddingBottom: templateId === 'template3' ? 4 : 0
+            borderStyle: 'solid'
         },
-        jobTitle: { fontSize: 14, fontFamily: getBoldFontFamily(templateId), marginBottom: 8, color: getSecondaryColor(templateId) },
+        name: { 
+            fontSize: templateId === 'template3' ? 18.5 : 20, 
+            fontFamily: getBoldFontFamily(templateId), 
+            marginBottom: templateId === 'template3' ? 4.5 : 3, 
+            color: getPrimaryColor(templateId),
+            textTransform: (templateId === 'template2' || templateId === 'template3') ? 'uppercase' : 'none'
+        },
+        jobTitle: { fontSize: 11.5, fontFamily: getBoldFontFamily(templateId), marginBottom: 8, color: getSecondaryColor(templateId) },
         contactRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center' },
         contactItem: { marginHorizontal: 3 },
-        section: { marginTop: 14 },
+        section: { marginTop: 11 },
         sectionTitle: { 
-            fontSize: 13.5, 
+            fontSize: 11.5, 
             fontFamily: getBoldFontFamily(templateId), 
-            borderBottomWidth: templateId === 'template3' ? 1 : 1.5, 
+            borderBottomWidth: templateId === 'template2' ? 2 : templateId === 'template3' ? 1 : 1.5, 
             borderBottomColor: templateId === 'template3' ? '#666' : getPrimaryColor(templateId), 
             borderStyle: templateId === 'template3' ? 'dashed' : 'solid',
             color: getPrimaryColor(templateId),
-            paddingBottom: 2, 
-            marginBottom: 8, 
+            paddingBottom: 1.5, 
+            marginBottom: 6, 
             textTransform: 'uppercase' 
         },
         summary: { textAlign: 'justify' },
@@ -75,9 +79,13 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
 
     const fmt = (d) => {
         if (!d) return "";
-        const [y, m] = d.split("-");
-        if (!m || !y) return d;
-        return ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][+m - 1] + " " + y;
+        if (typeof d !== 'string') return d;
+        const pts = d.split("-");
+        if (pts.length < 2) return d;
+        const [y, m] = pts;
+        const mIdx = parseInt(m, 10) - 1;
+        if (isNaN(mIdx) || mIdx < 0 || mIdx > 11) return d;
+        return ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][mIdx] + " " + y;
     };
 
     const toBullets = (text) => {
@@ -91,7 +99,7 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
         <Document>
             <Page size="A4" style={styles.page}>
                 <View style={styles.header}>
-                    <Text style={styles.name}>{pi.fullName || "Your Name"}</Text>
+                    <Text style={styles.name}>{(pi.fullName || "Your Name").replace(/\s+/g, '\u00A0')}</Text>
                     {pi.jobTitle && <Text style={styles.jobTitle}>{pi.jobTitle}</Text>}
                     {/* Render contact info if any exists */}
                     {(pi.address || pi.email || pi.phone || pi.linkedin || pi.github) && (
@@ -174,7 +182,7 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
                             <View style={styles.projBlock} key={pr.id}>
                                 <Text style={styles.projName}>
                                     {pr.projectName}
-                                    {pr.projectLink && <Text style={{ fontFamily: 'Times-Roman', fontWeight: 'normal' }}> | {pr.projectLink}</Text>}
+                                    {pr.projectLink && <Text style={{ fontFamily: getFontFamily(templateId) }}> | {pr.projectLink}</Text>}
                                 </Text>
                                 {pr.projectDescription && toBullets(pr.projectDescription).map((line, i) => (
                                     <View style={styles.bulletRow} key={i}>
@@ -208,9 +216,9 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
                             <View style={styles.projBlock} key={c.id}>
                                 <Text style={styles.projName}>
                                     {c.name}
-                                    {c.date && <Text style={{ fontFamily: 'Times-Roman', fontWeight: 'normal' }}> | {c.date} </Text>}
+                                    {c.date && <Text style={{ fontFamily: getFontFamily(templateId) }}> | {c.date} </Text>}
                                 </Text>
-                                {c.issuer && <Text style={{ fontSize: 11, fontFamily: 'Times-Italic', marginBottom: 4 }}>{c.issuer} </Text>}
+                                {c.issuer && <Text style={{ fontSize: 8.5, fontFamily: getItalicFontFamily(templateId), marginBottom: 4 }}>{c.issuer} </Text>}
                             </View>
                         ))}
                     </View>
@@ -223,9 +231,9 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
                             <View style={styles.projBlock} key={a.id}>
                                 <Text style={styles.projName}>
                                     {a.title}
-                                    {a.date && <Text style={{ fontFamily: 'Times-Roman', fontWeight: 'normal' }}> | {a.date} </Text>}
+                                    {a.date && <Text style={{ fontFamily: getFontFamily(templateId) }}> | {a.date} </Text>}
                                 </Text>
-                                {a.awarder && <Text style={{ fontSize: 11, fontFamily: 'Times-Italic', marginBottom: 2 }}>{a.awarder} </Text>}
+                                {a.awarder && <Text style={{ fontSize: 8.5, fontFamily: getItalicFontFamily(templateId), marginBottom: 2 }}>{a.awarder} </Text>}
                                 {a.description && <Text>{a.description}</Text>}
                             </View>
                         ))}
@@ -247,12 +255,12 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
                 {refs.length > 0 && (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>{t.references}</Text>
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 20 }}>
+                        <View style={{ flexDirection: 'column' }}>
                             {refs.map((r, i) => (
-                                <View key={r.id} style={{ width: '45%', marginBottom: 8 }}>
-                                    <Text style={{ fontSize: 12, fontFamily: 'Times-Bold' }}>{r.name} </Text>
-                                    {r.position && <Text style={{ fontSize: 11, fontFamily: 'Times-Italic' }}>{r.position}{r.company ? `, ${r.company}` : ''} </Text>}
-                                    {r.contactInfo && <Text style={{ fontSize: 11 }}>{r.contactInfo} </Text>}
+                                <View key={r.id} style={{ width: '100%', marginBottom: 8 }}>
+                                    <Text style={{ fontSize: 9.5, fontFamily: getBoldFontFamily(templateId) }}>{r.name} </Text>
+                                    {r.position && <Text style={{ fontSize: 8.5, fontFamily: getItalicFontFamily(templateId) }}>{r.position}{r.company ? `, ${r.company}` : ''} </Text>}
+                                    {r.contactInfo && <Text style={{ fontSize: 8.5 }}>{r.contactInfo} </Text>}
                                 </View>
                             ))}
                         </View>
