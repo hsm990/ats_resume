@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useContext } from "react";
 import { InfoContext } from "../../context/infoContext";
+import LanguageModal from "./LanguageModal";
 
 const Hero = () => {
   const [showLangModal, setShowLangModal] = useState(false);
@@ -16,244 +17,296 @@ const Hero = () => {
   return (
     <>
       <style>{`
-        .hero {
-            max-height: 600px;
-            display: flex;
-            align-items: center;
-            justify-content: start;
-            text-align: center;
-            flex-direction: column;
-            padding-top: 100px;
+        .hero-section {
+          position: relative;
+          min-height: calc(100vh - 80px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          padding: 60px 20px 80px;
+          overflow: hidden;
+          background-color: var(--bg-primary);
         }
-            .hero .span {
-                color: #797979;
-                position: relative;
-                font-family: 'Syne', sans-serif;
-            }
-            .hero .span:before {
-                content: "";
-                position: absolute;
-                top: 50%;
-                left: -25px;
-                width: 20px;
-                height: 2px;
-                background-color: #e84545;
-                z-index: -1;
-            }
-            .hero h1 {
-     font-weight: 800;
+
+        .hero-bg-glow {
+          position: absolute;
+          top: -20%;
+          right: -10%;
+          width: 600px;
+          height: 600px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(232,69,69,0.08) 0%, transparent 70%);
+          pointer-events: none;
+        }
+
+        .hero-bg-glow-2 {
+          position: absolute;
+          bottom: -20%;
+          left: -10%;
+          width: 500px;
+          height: 500px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%);
+          pointer-events: none;
+        }
+
+        .hero-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 18px;
+          border: 1px solid var(--border-color);
+          border-radius: 100px;
+          font-family: 'Syne', sans-serif;
+          font-size: 12px;
+          font-weight: 600;
+          letter-spacing: 0.5px;
+          color: var(--text-secondary);
+          margin-bottom: 32px;
+          transition: all 0.3s ease;
+          cursor: default;
+        }
+        .hero-badge:hover {
+          border-color: #e84545;
+          color: #e84545;
+        }
+        .hero-badge-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #22c55e;
+          animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+
+        .hero-heading {
+          text-align: center;
+          position: relative;
+          z-index: 1;
+        }
+
+        .hero-subtitle {
+          color: #797979;
+          font-family: 'Syne', sans-serif;
+          font-size: 13px;
+          font-weight: 600;
+          letter-spacing: 3px;
+          text-transform: uppercase;
+          margin-bottom: 20px;
+          position: relative;
+          display: inline-block;
+        }
+        .hero-subtitle::before {
+          content: "";
+          position: absolute;
+          top: 50%;
+          right: calc(100% + 16px);
+          width: 24px;
+          height: 2px;
+          background-color: #e84545;
+        }
+        .hero-subtitle::after {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: calc(100% + 16px);
+          width: 24px;
+          height: 2px;
+          background-color: #e84545;
+        }
+
+        .hero h1 {
+          font-weight: 800;
           font-size: clamp(56px, 6.5vw, 92px);
           line-height: 0.95;
           letter-spacing: -3px;
           color: var(--text-primary);
           margin-bottom: 8px;
           font-family: 'Syne', sans-serif;
-            }
-          .hero .h1-span {
+        }
+        .hero .h1-span {
           font-family: 'Instrument Serif', serif;
           font-style: italic;
           font-weight: 400;
           color: #e84545;
-          letter-spacing: -2px;         
-          }
-
-          .hero h1.hero-title-outline {
+          letter-spacing: -2px;
+        }
+        .hero h1.hero-title-outline {
           -webkit-text-stroke: 2px var(--text-primary);
           color: transparent;
           margin-bottom: 25px;
+        }
+
+        .hero-tagline {
+          font-family: 'Syne', sans-serif;
+          font-size: 16px;
+          color: var(--text-secondary);
+          max-width: 480px;
+          margin: 16px auto 0;
+          line-height: 1.6;
+        }
+
+        .button-container {
+          margin-top: 48px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 16px;
+          flex-wrap: wrap;
+          position: relative;
+          z-index: 1;
+        }
+
+        .button {
+          padding: 0 40px;
+          height: 54px;
+          cursor: pointer;
+          font-family: 'Syne', sans-serif;
+          font-size: 15px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          white-space: nowrap;
+          box-sizing: border-box;
+          border-radius: 6px;
+          transition: all 0.3s ease;
+          text-decoration: none;
+          letter-spacing: 0.3px;
+        }
+        .button.first {
+          background-color: #e84545;
+          border: 1px solid transparent;
+          color: white;
+        }
+        .button.first:hover {
+          background-color: var(--text-primary);
+          color: var(--bg-primary);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        .button.second {
+          border: 1px solid var(--text-primary);
+          color: var(--text-primary);
+          background-color: transparent;
+          position: relative;
+          overflow: hidden;
+        }
+        .button.second::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 0;
+          height: 100%;
+          background-color: var(--text-primary);
+          transition: width 0.4s ease;
+          z-index: 0;
+        }
+        .button.second:hover::before {
+          width: 100%;
+        }
+        .button.second:hover {
+          color: var(--bg-primary);
+          transform: translateY(-2px);
+        }
+        .button.second span {
+          position: relative;
+          z-index: 1;
+        }
+
+        .button.primary {
+          background-color: var(--text-primary);
+          color: var(--bg-primary);
+          border: 1px solid var(--text-primary);
+        }
+        .button.primary:hover {
+          opacity: 0.85;
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+
+        @media (max-width: 768px) {
+          .hero-section {
+            padding: 40px 16px 60px;
+            min-height: auto;
+          }
+          .hero h1 {
+            font-size: 42px !important;
+            letter-spacing: -1.5px;
+          }
+          .hero-subtitle::before,
+          .hero-subtitle::after {
+            display: none;
           }
           .button-container {
-            margin-top: 60px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 36px;
+            width: 100%;
+          }
+          .button-container a, .button-container button {
+            width: 100%;
           }
           .button {
-            color: white;
-            padding: 0 40px;
-            height: 52px;
-            cursor: pointer;
-            font-family: 'Syne', sans-serif;
-            font-size: 16px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            white-space: nowrap;
-            box-sizing: border-box;
+            width: 100%;
+            height: 48px;
+            font-size: 14px;
           }
-            .button.first {
-              background-color: #e84545;
-              border: 1px solid transparent;
-              transition: all 0.4s ease-in-out;
-            }
-              .button.first:hover {
-                background-color: var(--text-primary);
-                color: var(--bg-primary);
-                border-color: var(--text-primary);
-              }
- 
-
-            .button.second {
-             border: 1px solid var(--text-primary);
-             color: var(--text-primary);
-             background-color: transparent;
-             position: relative;
-            }
-            .button.second:before {
-            content:"";
-            position:absolute;
-            left:0;
-            top:0;
-            width:0;
-            height:100%;
-            background-color:var(--text-primary);
-            z-index:-1;
-            transition: all 0.4s ease-in-out;
-            }
-            .button.second:hover:before {
-              width:100%;
-              height:100%;
-            }
-              .button.second:hover{
-                color:var(--bg-primary);
-              }
-              
-              /* Responsiveness */
-              @media (max-width: 768px) {
-                  .hero {
-                      padding-top: 60px;
-                      padding-bottom: 60px;
-                      height: auto;
-                  }
-                  .hero h1 {
-                      font-size: 48px !important;
-                  }
-                  .button-container {
-                      flex-direction: column;
-                      gap: 15px;
-                      margin-top: 40px;
-                      width: 100%;
-                      padding: 0 20px;
-                  }
-                  .button-container a, .button-container button {
-                      width: 100%;
-                      text-decoration: none;
-                  }
-                  .button {
-                      margin: 0;
-                      width: 100%;
-                  }
-              }
-
-              /* Modal Styles */
-              .modal-overlay {
-                  position: fixed;
-                  top: 0; left: 0; right: 0; bottom: 0;
-                  background: rgba(0, 0, 0, 0.6);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  z-index: 1000;
-                  backdrop-filter: blur(4px);
-              }
-              .modal-content {
-                  background-color: var(--bg-primary);
-                  padding: 40px;
-                  border-radius: 12px;
-                  text-align: center;
-                  max-width: 400px;
-                  width: 90%;
-                  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-                  border: 1px solid var(--border-color, #444);
-              }
-              .modal-title {
-                  font-size: 24px;
-                  font-weight: 800;
-                  margin-bottom: 10px;
-                  color: var(--text-primary);
-                  font-family: 'Syne', sans-serif;
-              }
-              .modal-desc {
-                  font-size: 16px;
-                  color: var(--text-secondary, #999);
-                  margin-bottom: 25px;
-                  font-family: 'Syne', sans-serif;
-              }
-              .lang-buttons {
-                  display: flex;
-                  gap: 15px;
-                  justify-content: center;
-                  margin-bottom: 20px;
-              }
-              .lang-btn {
-                  padding: 12px 30px;
-                  font-size: 16px;
-                  font-weight: 600;
-                  cursor: pointer;
-                  background: none;
-                  border: 2px solid var(--text-primary);
-                  color: var(--text-primary);
-                  border-radius: 6px;
-                  font-family: 'Syne', sans-serif;
-                  transition: all 0.2s;
-              }
-              .lang-btn:hover {
-                  background: var(--text-primary);
-                  color: var(--bg-primary);
-              }
-              
-              .modal-close {
-                  background-color: #e84545;
-                  color: white;
-                  padding: 10px 24px;
-                  border: none;
-                  border-radius: 6px;
-                  font-weight: 700;
-                  cursor: pointer;
-                  font-family: 'Syne', sans-serif;
-                  transition: opacity 0.2s;
-              }
-              .modal-close:hover {
-                  opacity: 0.9;
-              }
+          .hero-bg-glow, .hero-bg-glow-2 {
+            width: 300px;
+            height: 300px;
+          }
+        }
       `}</style>
-      <div className="hero">
-        <span className="span" >Next-Generation Career Tools</span>
-        <h1 style={{ marginTop: "25px" }}>ELEVATE</h1>
-        <h1>YOUR <span className="h1-span">POTENTIAL</span></h1>
-        <h1 className="hero-title-outline">LAND</h1>
-        <h1>THE JOB.</h1>
+
+      <section className="hero-section">
+        <div className="hero-bg-glow" />
+        <div className="hero-bg-glow-2" />
+
+        <div className="hero-badge">
+          <span className="hero-badge-dot" />
+          AI-Powered ATS Optimization
+        </div>
+
+        <div className="hero-heading">
+          <span className="hero-subtitle">Next-Generation Career Tools</span>
+          <div className="hero">
+            <h1 style={{ marginTop: "20px" }}>ELEVATE</h1>
+            <h1>YOUR <span className="h1-span">POTENTIAL</span></h1>
+            <h1 className="hero-title-outline">LAND</h1>
+            <h1>THE JOB.</h1>
+          </div>
+          <p className="hero-tagline">
+            Build ATS-optimized resumes, match keywords, and land more interviews with AI-powered tools.
+          </p>
+        </div>
+
         <div className="button-container">
           <Link to="/services" style={{ textDecoration: 'none' }}>
             <button className="button first">
-              <span>Explore Services</span>
+              <span>Start Free →</span>
             </button>
           </Link>
           <Link to="/contact" style={{ textDecoration: 'none' }}>
             <button className="button second">
-              <span>Contact Us</span>
+              <span>Contact with us →</span>
             </button>
           </Link>
         </div>
-      </div>
+      </section>
 
-      {showLangModal && (
-        <div className="modal-overlay" onClick={() => setShowLangModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h2 className="modal-title">Choose Language</h2>
-            <p className="modal-desc">Select the language for your resume</p>
-            <div className="lang-buttons">
-              <button className="lang-btn" onClick={() => handleLanguageSelect('en')}>English</button>
-              <button className="lang-btn" onClick={() => handleLanguageSelect('fr')}>Français</button>
-            </div>
-            <button className="modal-close" onClick={() => setShowLangModal(false)}>Close</button>
-          </div>
-        </div>
-      )}
+      <LanguageModal
+        show={showLangModal}
+        onClose={() => setShowLangModal(false)}
+        onSelect={handleLanguageSelect}
+      />
     </>
   )
 }
-export default Hero
+
+export default Hero;

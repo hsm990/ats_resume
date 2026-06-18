@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect, useRef } from "react";
 import { InfoContext } from "../context/infoContext";
 import AccordionUsage from "../components/Layout/Accordion";
 import ResumeTemplate from "../components/resume/ResumeTemplate";
@@ -52,6 +52,17 @@ const Builder = () => {
     const [atsLoading, setAtsLoading] = useState(false);
     const [atsResult, setAtsResult] = useState(null);
     const [toastError, setToastError] = useState("");
+    const [saved, setSaved] = useState(false);
+    const prevDataRef = useRef(resumeInfo);
+
+    useEffect(() => {
+        if (prevDataRef.current !== resumeInfo) {
+            setSaved(true);
+            const timer = setTimeout(() => setSaved(false), 2000);
+            prevDataRef.current = resumeInfo;
+            return () => clearTimeout(timer);
+        }
+    }, [resumeInfo]);
 
     const showError = (msg) => {
         setToastError(msg);
@@ -813,41 +824,6 @@ Format:
             .checklist-label.done  { color: var(--text-primary); }
             .checklist-label.empty { color: var(--text-secondary); font-weight: 400; }
 
-            /* Mobile Responsiveness */
-            @media (max-width: 900px) {
-                .builder-container {
-                    flex-direction: column;
-                    height: auto;
-                    overflow: visible;
-                }
-                .builder-left {
-                    width: 100%;
-                    height: auto;
-                    border-right: none;
-                    border-bottom: 2px solid var(--border-color);
-                    padding: 20px 10px;
-                }
-                .builder-left-content {
-                    width: 100%;
-                }
-                .builder-left ul {
-                    flex-wrap: wrap;
-                    gap: 30px;
-                }
-                .form-grid {
-                    display: flex;
-                    flex-direction: column;
-                }
-                .btn-submit, .btn-back {
-                    width: 100%;
-                }
-                .builder-right {
-                    width: 100%;
-                    height: auto;
-                    padding: 10px;
-                    overflow-x: auto;
-                }
-            }
             `}</style>
 
             <div className="builder-left">
@@ -1324,14 +1300,43 @@ Format:
                 </div>
             </div>
 
+            {saved && (
+                <div style={{
+                    position: "fixed", bottom: 80, right: 20,
+                    backgroundColor: "rgba(34,197,94,0.9)", color: "white",
+                    padding: "8px 16px", borderRadius: "6px",
+                    fontSize: "12px", fontWeight: 600,
+                    fontFamily: "'Syne',sans-serif",
+                    display: "flex", alignItems: "center", gap: "6px",
+                    zIndex: 9998, transition: "opacity 0.3s",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+                }}>
+                    <span>✓</span> Auto-saved
+                </div>
+            )}
+
             {toastError && (
                 <div style={{
                     position: "fixed", bottom: 20, left: "50%", transform: "translateX(-50%)",
-                    backgroundColor: "#e84545", color: "white", padding: "12px 24px",
+                    backgroundColor: "#e84545", color: "white", padding: "12px 20px",
                     borderRadius: "8px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                    zIndex: 9999, fontWeight: 600, fontSize: "14px", display: "flex", alignItems: "center", gap: "8px"
+                    zIndex: 9999, fontWeight: 600, fontSize: "14px", display: "flex", alignItems: "center", gap: "10px",
+                    maxWidth: "90vw"
                 }}>
-                    <span>⚠️</span> {toastError}
+                    <span style={{ flexShrink: 0 }}>⚠️</span>
+                    <span style={{ flex: 1 }}>{toastError}</span>
+                    <button
+                        type="button"
+                        onClick={() => setToastError("")}
+                        style={{
+                            background: "rgba(255,255,255,0.2)", border: "none", color: "white",
+                            borderRadius: "4px", cursor: "pointer", padding: "2px 8px",
+                            fontSize: "16px", lineHeight: 1, flexShrink: 0
+                        }}
+                        aria-label="Dismiss"
+                    >
+                        ✕
+                    </button>
                 </div>
             )}
         </div>
