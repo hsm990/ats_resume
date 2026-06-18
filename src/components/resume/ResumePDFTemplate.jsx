@@ -1,5 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Link } from '@react-pdf/renderer';
+import { textFR, textEN, fmt, toBullets } from "../../utils/resumeUtils";
 
 const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projects, languages, summary, certifications, awards, references, customSections, resumeLanguage, templateId = 'template1' }) => {
 
@@ -102,8 +103,6 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
         projLink: { fontSize: 8.5, fontFamily: getItalicFontFamily(templateId), marginBottom: 1.5 },
     }), [templateId]);
 
-    const textFR = { summary: "Résumé Professionnel", experience: "Expérience Professionnelle", education: "Éducation", skills: "Compétences", technicalSkills: "Compétences techniques:", softSkills: "Compétences interpersonnelles:", projects: "Projets", languages: "Langues", certifications: "Certifications", awards: "Prix", references: "Références" };
-    const textEN = { summary: "Professional Summary", experience: "Professional Experience", education: "Education", skills: "Skills", technicalSkills: "Technical Skills:", softSkills: "Soft Skills:", projects: "Projects", languages: "Languages", certifications: "Certifications", awards: "Awards", references: "References" };
     const t = resumeLanguage === 'fr' ? textFR : textEN;
     const pi = personalInfo || {};
     const exps = experience || [];
@@ -120,24 +119,6 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
     const technicalSkills = (skls.technicalSkills || "").split(",").map(x => x.trim()).filter(Boolean);
     const softSkills = (skls.softSkills || "").split(",").map(x => x.trim()).filter(Boolean);
 
-    const fmt = (d) => {
-        if (!d) return "";
-        if (typeof d !== 'string') return d;
-        const pts = d.split("-");
-        if (pts.length < 2) return d;
-        const [y, m] = pts;
-        const mIdx = parseInt(m, 10) - 1;
-        if (isNaN(mIdx) || mIdx < 0 || mIdx > 11) return d;
-        return ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][mIdx] + " " + y;
-    };
-
-    const toBullets = (text) => {
-        if (!text?.trim()) return [];
-        return text.split("\n").map(l => l.replace(/^[\s\-•*]+/, "").trim()).filter(Boolean);
-    };
-
-    const ContactSeparator = () => <Text style={styles.contactItem}> | </Text>;
-
     return (
         <Document>
             <Page size="A4" style={styles.page}>
@@ -149,13 +130,13 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
                     {(pi.address || pi.email || pi.phone || pi.linkedin || pi.github) && (
                         <View style={styles.contactRow}>
                             {pi.address && <Text style={styles.contactItem}>{pi.address}</Text>}
-                            {pi.address && pi.email && <ContactSeparator />}
+                            {pi.address && pi.email && <Text style={styles.contactItem}> | </Text>}
                             {pi.email && <Text style={styles.contactItem}>{pi.email}</Text>}
-                            {pi.email && pi.phone && <ContactSeparator />}
+                            {pi.email && pi.phone && <Text style={styles.contactItem}> | </Text>}
                             {pi.phone && <Text style={styles.contactItem}>{pi.phone}</Text>}
-                            {pi.phone && pi.linkedin && <ContactSeparator />}
+                            {pi.phone && pi.linkedin && <Text style={styles.contactItem}> | </Text>}
                             {pi.linkedin && <Link src={pi.linkedin} style={{ ...styles.contactItem, ...styles.boldLabel, color: '#111', textDecoration: 'none' }}>LinkedIn</Link>}
-                            {(pi.linkedin || pi.phone) && pi.github && <ContactSeparator />}
+                            {(pi.linkedin || pi.phone) && pi.github && <Text style={styles.contactItem}> | </Text>}
                             {pi.github && <Link src={pi.github} style={{ ...styles.contactItem, ...styles.boldLabel, color: '#111', textDecoration: 'none' }}>GitHub</Link>}
                         </View>
                     )}

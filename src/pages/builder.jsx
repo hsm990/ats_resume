@@ -4,6 +4,11 @@ import AccordionUsage from "../components/Layout/Accordion";
 import ResumeTemplate from "../components/resume/ResumeTemplate";
 import ResumePDFTemplate from "../components/resume/ResumePDFTemplate";
 import { PDFDownloadLink } from "@react-pdf/renderer";
+import FormInput from "../components/common/FormInput";
+import FormTextarea from "../components/common/FormTextarea";
+import AiButton from "../components/common/AiButton";
+import SectionNav from "../components/common/SectionNav";
+import SectionHeader from "../components/common/SectionHeader";
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
@@ -74,8 +79,6 @@ const Builder = () => {
     const exps = resumeInfo.experience || [];
     const edus = resumeInfo.education || [];
     const skls = resumeInfo.skills || { technicalSkills: "", softSkills: "" };
-    const prjs = resumeInfo.projects || [];
-    const lngs = resumeInfo.languages || [];
     const sum = resumeInfo.summary || "";
 
     const allSkills = [
@@ -474,30 +477,6 @@ Format:
         setAtsLoading(false);
     };
 
-    const AiBtn = ({ loadKey, onClick, label = "✦ AI Suggest" }) => (
-        <button
-            type="button"
-            disabled={!!aiLoading[loadKey]}
-            onClick={onClick}
-            style={{
-                display: "inline-flex", alignItems: "center", gap: 5,
-                padding: "5px 12px",
-                background: aiLoading[loadKey] ? "#c4b5fd" : "linear-gradient(135deg,#6366f1,#8b5cf6)",
-                color: "#fff", border: "none", borderRadius: 5,
-                fontSize: 11, fontWeight: 700,
-                fontFamily: "'Syne',sans-serif",
-                cursor: aiLoading[loadKey] ? "not-allowed" : "pointer",
-                letterSpacing: 0.3, flexShrink: 0,
-                transition: "opacity .2s",
-            }}
-        >
-            {aiLoading[loadKey]
-                ? <span style={{ width: 10, height: 10, border: "2px solid rgba(255,255,255,.4)", borderTopColor: "#fff", borderRadius: "50%", display: "inline-block", animation: "ai-spin .6s linear infinite" }} />
-                : null}
-            {aiLoading[loadKey] ? "Generating..." : label}
-        </button>
-    );
-
     return (
         <div className="builder-container">
             <style>{`
@@ -872,16 +851,7 @@ Format:
             `}</style>
 
             <div className="builder-left">
-                <ul>
-                    <li className={activeStep === 1 ? "active" : activeStep > 1 ? "done" : ""} onClick={() => setActiveStep(1)}>Personal Info</li>
-                    <li className={activeStep === 2 ? "active" : activeStep > 2 ? "done" : ""} onClick={() => setActiveStep(2)}>Experience</li>
-                    <li className={activeStep === 3 ? "active" : activeStep > 3 ? "done" : ""} onClick={() => setActiveStep(3)}>Education</li>
-                    <li className={activeStep === 4 ? "active" : activeStep > 4 ? "done" : ""} onClick={() => setActiveStep(4)}>Skills</li>
-                    <li className={activeStep === 5 ? "active" : activeStep > 5 ? "done" : ""} onClick={() => setActiveStep(5)}>Projects</li>
-                    <li className={activeStep === 6 ? "active" : activeStep > 6 ? "done" : ""} onClick={() => setActiveStep(6)}>Languages</li>
-                    <li className={activeStep === 7 ? "active" : activeStep > 7 ? "done" : ""} onClick={() => setActiveStep(7)}>Summary</li>
-                    <li className={activeStep === 8 ? "active" : activeStep > 8 ? "done" : ""} onClick={() => setActiveStep(8)}>Finalize</li>
-                </ul>
+                <SectionNav activeStep={activeStep} onStep={setActiveStep} />
 
                 <div style={{ marginTop: "30px", padding: "15px", borderTop: "2px solid var(--border-color)", textAlign: "center" }}>
                     <button type="button" onClick={() => {
@@ -896,8 +866,7 @@ Format:
                     {/* STEP 1 — Personal Info  */}
                     {activeStep === 1 && (
                         <>
-                            <h1>Personal Details</h1>
-                            <p>Get started with your name and contact information.</p>
+                            <SectionHeader title="Personal Details" description="Get started with your name and contact information." />
                             <div className="form-grid">
 
                                 <div className="form-group full-width" style={{ marginBottom: "20px" }}>
@@ -955,95 +924,41 @@ Format:
                                 </div>
 
 
-                                <div className="form-group">
-                                    <label>Full Name <span className="req">*</span></label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. John Doe"
-                                        className={errors.fullName ? "input-err" : ""}
-                                        value={resumeInfo.personalInfo.fullName}
-                                        onChange={(e) => {
-                                            updatePersonalInfo("fullName", e.target.value);
-                                            if (e.target.value.trim()) clearError("fullName");
-                                        }}
-                                    />
-                                    {errors.fullName && <span className="err-msg">{errors.fullName}</span>}
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Job Title <span className="req">*</span></label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. Frontend Developer"
-                                        className={errors.jobTitle ? "input-err" : ""}
-                                        value={resumeInfo.personalInfo.jobTitle}
-                                        onChange={(e) => {
-                                            updatePersonalInfo("jobTitle", e.target.value);
-                                            if (e.target.value.trim()) clearError("jobTitle");
-                                        }}
-                                    />
-                                    {errors.jobTitle && <span className="err-msg">{errors.jobTitle}</span>}
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Email Address <span className="req">*</span></label>
-                                    <input
-                                        type="email"
-                                        placeholder="john@example.com"
-                                        className={errors.email ? "input-err" : ""}
-                                        value={resumeInfo.personalInfo.email}
-                                        onChange={(e) => {
-                                            updatePersonalInfo("email", e.target.value);
-                                            if (e.target.value.trim()) clearError("email");
-                                        }}
-                                    />
-                                    {errors.email && <span className="err-msg">{errors.email}</span>}
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Phone Number <span className="req">*</span></label>
-                                    <input
-                                        type="tel"
-                                        placeholder="+1 234 567 890"
-                                        className={errors.phone ? "input-err" : ""}
-                                        value={resumeInfo.personalInfo.phone}
-                                        onChange={(e) => {
-                                            updatePersonalInfo("phone", e.target.value);
-                                            if (e.target.value.trim()) clearError("phone");
-                                        }}
-                                    />
-                                    {errors.phone && <span className="err-msg">{errors.phone}</span>}
-                                </div>
-
-                                <div className="form-group full-width">
-                                    <label>Address <span className="opt">(optional)</span></label>
-                                    <input
-                                        type="text"
-                                        placeholder="City, Country"
-                                        value={resumeInfo.personalInfo.address}
-                                        onChange={(e) => updatePersonalInfo("address", e.target.value)}
-                                    />
-                                </div>
-
-                                <div className="form-group">
-                                    <label>LinkedIn <span className="opt">(optional)</span></label>
-                                    <input
-                                        type="text"
-                                        placeholder="linkedin.com/in/username"
-                                        value={resumeInfo.personalInfo.linkedin}
-                                        onChange={(e) => updatePersonalInfo("linkedin", e.target.value)}
-                                    />
-                                </div>
-
-                                <div className="form-group">
-                                    <label>GitHub / Portfolio <span className="opt">(optional)</span></label>
-                                    <input
-                                        type="text"
-                                        placeholder="github.com/username"
-                                        value={resumeInfo.personalInfo.github}
-                                        onChange={(e) => updatePersonalInfo("github", e.target.value)}
-                                    />
-                                </div>
+                                <FormInput
+                                    label="Full Name" required value={resumeInfo.personalInfo.fullName}
+                                    placeholder="e.g. John Doe" error={errors.fullName}
+                                    onChange={(v) => { updatePersonalInfo("fullName", v); clearError("fullName"); }}
+                                />
+                                <FormInput
+                                    label="Job Title" required value={resumeInfo.personalInfo.jobTitle}
+                                    placeholder="e.g. Frontend Developer" error={errors.jobTitle}
+                                    onChange={(v) => { updatePersonalInfo("jobTitle", v); clearError("jobTitle"); }}
+                                />
+                                <FormInput
+                                    label="Email Address" required value={resumeInfo.personalInfo.email}
+                                    placeholder="john@example.com" error={errors.email} type="email"
+                                    onChange={(v) => { updatePersonalInfo("email", v); clearError("email"); }}
+                                />
+                                <FormInput
+                                    label="Phone Number" required value={resumeInfo.personalInfo.phone}
+                                    placeholder="+1 234 567 890" error={errors.phone} type="tel"
+                                    onChange={(v) => { updatePersonalInfo("phone", v); clearError("phone"); }}
+                                />
+                                <FormInput
+                                    label="Address" optional="optional" value={resumeInfo.personalInfo.address}
+                                    placeholder="City, Country"
+                                    onChange={(v) => updatePersonalInfo("address", v)}
+                                />
+                                <FormInput
+                                    label="LinkedIn" optional="optional" value={resumeInfo.personalInfo.linkedin}
+                                    placeholder="linkedin.com/in/username"
+                                    onChange={(v) => updatePersonalInfo("linkedin", v)}
+                                />
+                                <FormInput
+                                    label="GitHub / Portfolio" optional="optional" value={resumeInfo.personalInfo.github}
+                                    placeholder="github.com/username"
+                                    onChange={(v) => updatePersonalInfo("github", v)}
+                                />
 
                                 <div className="form-group full-width">
                                     <button
@@ -1061,8 +976,7 @@ Format:
                     {/* STEP 2 — Experience  */}
                     {activeStep === 2 && (
                         <>
-                            <h1>Experience</h1>
-                            <p>Add your work experience.</p>
+                            <SectionHeader title="Experience" description="Add your work experience." />
                             <span style={{ display: "block", width: "fit-content", color: "#e84545", cursor: "pointer", textDecoration: "underline" }} onClick={() => addExperience()}>+Add Experience</span>
 
                             {resumeInfo.experience.map((exp) => (
@@ -1071,39 +985,14 @@ Format:
                                     <div style={{ marginBottom: "20px" }}>
                                         <AccordionUsage title={`${exp.jobTitle || "Job Title"} | ${exp.company || "Company"}`}>
                                             <div className="form-grid">
-                                                <div className="form-group">
-                                                    <label>Job Title</label>
-                                                    <input type="text" placeholder="e.g. Frontend Developer" value={exp.jobTitle} onChange={(e) => updateExperience(exp.id, "jobTitle", e.target.value)} />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label>Company</label>
-                                                    <input type="text" placeholder="e.g. Google" value={exp.company} onChange={(e) => updateExperience(exp.id, "company", e.target.value)} />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label>Location</label>
-                                                    <input type="text" placeholder="e.g. New York" value={exp.location} onChange={(e) => updateExperience(exp.id, "location", e.target.value)} />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label>Start Date</label>
-                                                    <input type="text" placeholder="e.g. Sep 2020" value={exp.startDate} onChange={(e) => updateExperience(exp.id, "startDate", e.target.value)} />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label>End Date</label>
-                                                    <input type="text" placeholder="e.g. Sep 2020" value={exp.endDate} onChange={(e) => updateExperience(exp.id, "endDate", e.target.value)} />
-                                                </div>
-                                                {/* ── Description + AI Suggest ── */}
-                                                <div className="form-group full-width">
-                                                    <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                                        <span>Description</span>
-                                                        <AiBtn loadKey={`exp_${exp.id}`} onClick={() => suggestExpDesc(exp)} />
-                                                    </label>
-                                                    <textarea
-                                                        placeholder="Describe your achievements... or click ✦ AI Suggest"
-                                                        style={{ height: "100px", padding: "12px 15px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "15px", outline: "none", transition: "border-color 0.2s", resize: "vertical", fontFamily: "'Syne',sans-serif" }}
-                                                        value={exp.description}
-                                                        onChange={(e) => updateExperience(exp.id, "description", e.target.value)}
-                                                    />
-                                                </div>
+                                                <FormInput label="Job Title" value={exp.jobTitle} placeholder="e.g. Frontend Developer" onChange={(v) => updateExperience(exp.id, "jobTitle", v)} />
+                                                <FormInput label="Company" value={exp.company} placeholder="e.g. Google" onChange={(v) => updateExperience(exp.id, "company", v)} />
+                                                <FormInput label="Location" value={exp.location} placeholder="e.g. New York" onChange={(v) => updateExperience(exp.id, "location", v)} />
+                                                <FormInput label="Start Date" value={exp.startDate} placeholder="e.g. Sep 2020" onChange={(v) => updateExperience(exp.id, "startDate", v)} />
+                                                <FormInput label="End Date" value={exp.endDate} placeholder="e.g. Sep 2020" onChange={(v) => updateExperience(exp.id, "endDate", v)} />
+                                                <FormTextarea label="Description" value={exp.description} placeholder="Describe your achievements... or click ✦ AI Suggest" style={{ height: "100px" }} onChange={(v) => updateExperience(exp.id, "description", v)}>
+                                                    <AiButton loadingMap={aiLoading} loadKey={`exp_${exp.id}`} onClick={() => suggestExpDesc(exp)} />
+                                                </FormTextarea>
                                             </div>
                                         </AccordionUsage>
                                     </div>
@@ -1119,8 +1008,7 @@ Format:
                     {/* STEP 3 — Education  */}
                     {activeStep === 3 && (
                         <>
-                            <h1>Education</h1>
-                            <p>Add your education.</p>
+                            <SectionHeader title="Education" description="Add your education." />
                             <span style={{ display: "block", color: "#e84545", cursor: "pointer", textDecoration: "underline" }} onClick={() => addEducation()}>+Add Education</span>
                             {resumeInfo.education.map((edu) => (
                                 <React.Fragment key={edu.id}>
@@ -1128,33 +1016,14 @@ Format:
                                     <div style={{ marginBottom: "20px" }}>
                                         <AccordionUsage title={`${edu.degree || "Degree"} | ${edu.school || "School"}`}>
                                             <div className="form-grid">
-                                                <div className="form-group">
-                                                    <label>Degree</label>
-                                                    <input type="text" placeholder="e.g. Bachelor of Science" value={edu.degree} onChange={(e) => updateEducation(edu.id, "degree", e.target.value)} />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label>School</label>
-                                                    <input type="text" placeholder="e.g. University of California" value={edu.school} onChange={(e) => updateEducation(edu.id, "school", e.target.value)} />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label>Location</label>
-                                                    <input type="text" placeholder="e.g. New York" value={edu.location} onChange={(e) => updateEducation(edu.id, "location", e.target.value)} />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label>Start Date</label>
-                                                    <input type="text" placeholder="e.g. Sep 2020" value={edu.startDate} onChange={(e) => updateEducation(edu.id, "startDate", e.target.value)} />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label>End Date</label>
-                                                    <input type="text" placeholder="e.g. Sep 2020" value={edu.endDate} onChange={(e) => updateEducation(edu.id, "endDate", e.target.value)} />
-                                                </div>
-                                                <div className="form-group full-width">
-                                                    <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                                        <span>Description</span>
-                                                        <AiBtn loadKey={`edu_${edu.id}`} onClick={() => suggestEduDesc(edu)} />
-                                                    </label>
-                                                    <textarea placeholder="e.g. Graduated with honors... or click ✦ AI Suggest" style={{ height: "100px", padding: "12px 15px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "15px", outline: "none", transition: "border-color 0.2s", resize: "vertical", fontFamily: "'Syne',sans-serif" }} value={edu.description} onChange={(e) => updateEducation(edu.id, "description", e.target.value)} />
-                                                </div>
+                                                <FormInput label="Degree" value={edu.degree} placeholder="e.g. Bachelor of Science" onChange={(v) => updateEducation(edu.id, "degree", v)} />
+                                                <FormInput label="School" value={edu.school} placeholder="e.g. University of California" onChange={(v) => updateEducation(edu.id, "school", v)} />
+                                                <FormInput label="Location" value={edu.location} placeholder="e.g. New York" onChange={(v) => updateEducation(edu.id, "location", v)} />
+                                                <FormInput label="Start Date" value={edu.startDate} placeholder="e.g. Sep 2020" onChange={(v) => updateEducation(edu.id, "startDate", v)} />
+                                                <FormInput label="End Date" value={edu.endDate} placeholder="e.g. Sep 2020" onChange={(v) => updateEducation(edu.id, "endDate", v)} />
+                                                <FormTextarea label="Description" value={edu.description} placeholder="e.g. Graduated with honors... or click ✦ AI Suggest" style={{ height: "100px" }} onChange={(v) => updateEducation(edu.id, "description", v)}>
+                                                    <AiButton loadingMap={aiLoading} loadKey={`edu_${edu.id}`} onClick={() => suggestEduDesc(edu)} />
+                                                </FormTextarea>
                                             </div>
                                         </AccordionUsage>
                                     </div>
@@ -1170,29 +1039,17 @@ Format:
                     {/* STEP 4 — Skills  */}
                     {activeStep === 4 && (
                         <>
-                            <h1>Skills</h1>
-                            <p>Add your skills.</p>
+                            <SectionHeader title="Skills" description="Add your skills." />
                             <div style={{ marginBottom: "20px" }}>
                                 <div className="form-grid">
-                                    {/* ── Technical Skills + AI ── */}
-                                    <div className="form-group full-width">
-                                        <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                            <span>Technical Skills</span>
-                                            <AiBtn loadKey="tech_skills" onClick={suggestTechSkills} />
-                                        </label>
-                                        <textarea style={{ padding: "12px 15px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "15px", outline: "none", transition: "border-color 0.2s", fontFamily: "'Syne', sans-serif", resize: "vertical" }} placeholder="e.g. React, Node.js" value={skls.technicalSkills} onChange={(e) => updateSkills("technicalSkills", e.target.value)} rows={3} />
-                                    </div>
-                                    {/* ── Soft Skills + AI ── */}
-                                    <div className="form-group full-width">
-                                        <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                            <span>Soft Skills</span>
-                                            <AiBtn loadKey="soft_skills" onClick={suggestSoftSkills} />
-                                        </label>
-                                        <textarea style={{ padding: "12px 15px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "15px", outline: "none", transition: "border-color 0.2s", fontFamily: "'Syne', sans-serif", resize: "vertical" }} placeholder="e.g. Communication, Teamwork" value={skls.softSkills} onChange={(e) => updateSkills("softSkills", e.target.value)} rows={3} />
-                                    </div>
+                                    <FormTextarea label="Technical Skills" value={skls.technicalSkills} placeholder="e.g. React, Node.js" rows={3} onChange={(v) => updateSkills("technicalSkills", v)}>
+                                        <AiButton loadingMap={aiLoading} loadKey="tech_skills" onClick={suggestTechSkills} />
+                                    </FormTextarea>
+                                    <FormTextarea label="Soft Skills" value={skls.softSkills} placeholder="e.g. Communication, Teamwork" rows={3} onChange={(v) => updateSkills("softSkills", v)}>
+                                        <AiButton loadingMap={aiLoading} loadKey="soft_skills" onClick={suggestSoftSkills} />
+                                    </FormTextarea>
                                 </div>
                             </div>
-
 
                             <div className="form-group full-width" style={{ display: "flex", justifyContent: "space-between", marginTop: "30px", flexDirection: "row-reverse" }}>
                                 <button type="button" className="btn-submit" onClick={() => setActiveStep(5)}>Save & Continue</button>
@@ -1204,8 +1061,7 @@ Format:
                     {/* STEP 5 — Projects  */}
                     {activeStep === 5 && (
                         <>
-                            <h1>Projects</h1>
-                            <p>Add your projects.</p>
+                            <SectionHeader title="Projects" description="Add your projects." />
                             <span style={{ display: "block", color: "#e84545", cursor: "pointer", textDecoration: "underline" }} onClick={() => addProject()}>+Add Project</span>
                             {resumeInfo.projects.map((project) => (
                                 <React.Fragment key={project.id}>
@@ -1213,27 +1069,11 @@ Format:
                                     <div style={{ marginBottom: "20px" }}>
                                         <AccordionUsage title={`${project.projectName || "Project Name"} `}>
                                             <div className="form-grid">
-                                                <div className="form-group">
-                                                    <label>Project Name</label>
-                                                    <input type="text" placeholder="e.g. Project Name" value={project.projectName} onChange={(e) => updateProject(project.id, "projectName", e.target.value)} />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label>Project Link</label>
-                                                    <input type="text" placeholder="e.g. github.com/you/project" value={project.projectLink} onChange={(e) => updateProject(project.id, "projectLink", e.target.value)} />
-                                                </div>
-                                                {/* ── Project Description + AI ── */}
-                                                <div className="form-group full-width">
-                                                    <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                                        <span>Project Description</span>
-                                                        <AiBtn loadKey={`proj_${project.id}`} onClick={() => suggestProjDesc(project)} />
-                                                    </label>
-                                                    <textarea
-                                                        placeholder="Describe your project... or click ✦ AI Suggest"
-                                                        style={{ height: "80px", padding: "12px 15px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "15px", outline: "none", transition: "border-color 0.2s", resize: "vertical", fontFamily: "'Syne',sans-serif" }}
-                                                        value={project.projectDescription}
-                                                        onChange={(e) => updateProject(project.id, "projectDescription", e.target.value)}
-                                                    />
-                                                </div>
+                                                <FormInput label="Project Name" value={project.projectName} placeholder="e.g. Project Name" onChange={(v) => updateProject(project.id, "projectName", v)} />
+                                                <FormInput label="Project Link" value={project.projectLink} placeholder="e.g. github.com/you/project" onChange={(v) => updateProject(project.id, "projectLink", v)} />
+                                                <FormTextarea label="Project Description" value={project.projectDescription} placeholder="Describe your project... or click ✦ AI Suggest" style={{ height: "80px" }} onChange={(v) => updateProject(project.id, "projectDescription", v)}>
+                                                    <AiButton loadingMap={aiLoading} loadKey={`proj_${project.id}`} onClick={() => suggestProjDesc(project)} />
+                                                </FormTextarea>
                                             </div>
                                         </AccordionUsage>
                                     </div>
@@ -1249,8 +1089,7 @@ Format:
                     {/* STEP 6 — Languages  */}
                     {activeStep === 6 && (
                         <>
-                            <h1>Languages</h1>
-                            <p>Add your languages.</p>
+                            <SectionHeader title="Languages" description="Add your languages." />
                             <span style={{ display: "block", color: "#e84545", cursor: "pointer", textDecoration: "underline" }} onClick={() => addLanguage()}>+Add Language</span>
                             {resumeInfo.languages.map((language) => (
                                 <React.Fragment key={language.id}>
@@ -1258,14 +1097,8 @@ Format:
                                     <div style={{ marginBottom: "20px" }}>
                                         <AccordionUsage title={`${language.languageName || "Language Name"} | ${language.languageProficiency || "Language Proficiency"}`}>
                                             <div className="form-grid">
-                                                <div className="form-group">
-                                                    <label>Language Name</label>
-                                                    <input type="text" placeholder="e.g. Language Name" value={language.languageName} onChange={(e) => updateLanguage(language.id, "languageName", e.target.value)} />
-                                                </div>
-                                                <div className="form-group">
-                                                    <label>Language Proficiency</label>
-                                                    <input type="text" placeholder="e.g. Language Proficiency" value={language.languageProficiency} onChange={(e) => updateLanguage(language.id, "languageProficiency", e.target.value)} />
-                                                </div>
+                                                <FormInput label="Language Name" value={language.languageName} placeholder="e.g. Language Name" onChange={(v) => updateLanguage(language.id, "languageName", v)} />
+                                                <FormInput label="Language Proficiency" value={language.languageProficiency} placeholder="e.g. Language Proficiency" onChange={(v) => updateLanguage(language.id, "languageProficiency", v)} />
                                             </div>
                                         </AccordionUsage>
                                     </div>
@@ -1281,22 +1114,11 @@ Format:
                     {/* STEP 7 — Summary  */}
                     {activeStep === 7 && (
                         <>
-                            <h1>Summary</h1>
-                            <p>Add your summary.</p>
+                            <SectionHeader title="Summary" description="Add your summary." />
                             <div style={{ marginBottom: "20px" }}>
-                                <div className="form-group full-width">
-                                    {/* ── Summary  + AI Suggest ── */}
-                                    <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                                        <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700, color: "#444" }}>Summary</span>
-                                        <AiBtn loadKey="summary" onClick={suggestSummary} label="✦ AI Write Summary" />
-                                    </label>
-                                    <textarea
-                                        placeholder="e.g. Results-driven professional with 5+ years of experience... or click ✦ AI Write Summary above"
-                                        style={{ width: "100%", minHeight: "150px", padding: "12px 15px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "15px", fontFamily: "'Syne', sans-serif", outline: "none", transition: "border-color 0.2s", resize: "vertical" }}
-                                        value={resumeInfo.summary}
-                                        onChange={(e) => updateSummary(e.target.value)}
-                                    />
-                                </div>
+                                <FormTextarea label="Summary" value={resumeInfo.summary} placeholder="e.g. Results-driven professional with 5+ years of experience... or click ✦ AI Write Summary above" style={{ minHeight: "150px" }} onChange={(v) => updateSummary(v)}>
+                                    <AiButton loadingMap={aiLoading} loadKey="summary" onClick={suggestSummary} label="✦ AI Write Summary" />
+                                </FormTextarea>
                             </div>
                             <div className="form-group full-width" style={{ display: "flex", justifyContent: "space-between", marginTop: "30px", flexDirection: "row-reverse" }}>
                                 <button type="button" className="btn-submit" onClick={() => setActiveStep(8)}>Save & Continue</button>
@@ -1308,8 +1130,7 @@ Format:
                     {/* STEP 8 — Finalize & Additional Sections */}
                     {activeStep === 8 && (
                         <>
-                            <h1>Your CV is Ready!</h1>
-                            <p>Review your resume on the right, then download it as a PDF. You can also add optional sections below.</p>
+                            <SectionHeader title="Your CV is Ready!" description="Review your resume on the right, then download it as a PDF. You can also add optional sections below." />
 
                             <div style={{ marginBottom: 28 }}>
                                 {[

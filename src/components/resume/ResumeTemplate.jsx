@@ -1,6 +1,6 @@
+import { textFR, textEN, fmt, toBullets } from "../../utils/resumeUtils";
+
 const ResumeTemplate = ({ personalInfo, experience, education, skills, projects, languages, summary, certifications, awards, references, customSections, resumeLanguage, templateId = 'template1' }) => {
-    const textFR = { summary: "Résumé Professionnel", experience: "Expérience Professionnelle", education: "Éducation", skills: "Compétences", technicalSkills: "Compétences techniques:", softSkills: "Compétences interpersonnelles:", projects: "Projets", languages: "Langues", certifications: "Certifications", awards: "Prix", references: "Références" };
-    const textEN = { summary: "Professional Summary", experience: "Professional Experience", education: "Education", skills: "Skills", technicalSkills: "Technical Skills:", softSkills: "Soft Skills:", projects: "Projects", languages: "Languages", certifications: "Certifications", awards: "Awards", references: "References" };
     const t = resumeLanguage === 'fr' ? textFR : textEN;
 
     const pi = personalInfo || {};
@@ -16,23 +16,6 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
     const sum = summary || "";
     const technicalSkills = (skls.technicalSkills || "").split(",").map(x => x.trim()).filter(Boolean);
     const softSkills = (skls.softSkills || "").split(",").map(x => x.trim()).filter(Boolean);
-
-
-    const fmt = (d) => {
-        if (!d) return "";
-        if (typeof d !== 'string') return d;
-        const pts = d.split("-");
-        if (pts.length < 2) return d;
-        const [y, m] = pts;
-        const mIdx = parseInt(m, 10) - 1;
-        if (isNaN(mIdx) || mIdx < 0 || mIdx > 11) return d;
-        return ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][mIdx] + " " + y;
-    };
-
-    const toBullets = (text) => {
-        if (!text?.trim()) return [];
-        return text.split("\n").map(l => l.replace(/^[\s\-•*]+/, "").trim()).filter(Boolean);
-    };
 
     const isEmpty = !pi.fullName && exps.length === 0 && !sum && certs.length === 0 && awrds.length === 0 && refs.length === 0 && custs.length === 0 && edus.length === 0 && prjs.length === 0 && lngs.length === 0;
 
