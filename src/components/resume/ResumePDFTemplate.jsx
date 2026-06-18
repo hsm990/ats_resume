@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Document, Page, Text, View, StyleSheet, Link } from '@react-pdf/renderer';
 import { textFR, textEN, fmt, toBullets } from "../../utils/resumeUtils";
 
-const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projects, languages, summary, certifications, awards, references, customSections, resumeLanguage, templateId = 'template1' }) => {
+const ResumePDFTemplate = React.memo(({ personalInfo, experience, education, skills, projects, languages, summary, certifications, awards, references, customSections, resumeLanguage, templateId = 'template1' }) => {
 
     const getFontFamily = (tId) => tId === 'template2' ? 'Helvetica' : tId === 'template3' ? 'Courier' : 'Times-Roman';
     const getBoldFontFamily = (tId) => tId === 'template2' ? 'Helvetica-Bold' : tId === 'template3' ? 'Courier-Bold' : 'Times-Bold';
@@ -10,7 +10,7 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
     const getPrimaryColor = (tId) => tId === 'template2' ? '#1e3a8a' : '#000000';
     const getSecondaryColor = (tId) => tId === 'template2' ? '#475569' : '#111111';
 
-    const styles = React.useMemo(() => StyleSheet.create({
+    const styles = useMemo(() => StyleSheet.create({
         page: {
             // Reduced padding: was '20mm', now tighter horizontal + vertical
             paddingTop: 28,
@@ -116,8 +116,8 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
     const custs = customSections || [];
     const sum = summary || "";
 
-    const technicalSkills = (skls.technicalSkills || "").split(",").map(x => x.trim()).filter(Boolean);
-    const softSkills = (skls.softSkills || "").split(",").map(x => x.trim()).filter(Boolean);
+    const technicalSkills = useMemo(() => (skls.technicalSkills || "").split(",").map(x => x.trim()).filter(Boolean), [skls.technicalSkills]);
+    const softSkills = useMemo(() => (skls.softSkills || "").split(",").map(x => x.trim()).filter(Boolean), [skls.softSkills]);
 
     return (
         <Document>
@@ -312,6 +312,6 @@ const ResumePDFTemplate = ({ personalInfo, experience, education, skills, projec
             </Page>
         </Document>
     );
-};
+});
 
 export default ResumePDFTemplate;

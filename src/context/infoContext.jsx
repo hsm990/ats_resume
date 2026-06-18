@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState, useEffect, useRef } from "react";
 
 export const InfoContext = createContext();
 
@@ -46,9 +46,16 @@ export const InfoProvider = ({ children }) => {
     };
 
     const [resumeInfo, setResumeInfo] = useState(getInitialState);
+    const saveTimerRef = useRef(null);
 
     useEffect(() => {
-        sessionStorage.setItem("atsResumeData", JSON.stringify(resumeInfo));
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(() => {
+            sessionStorage.setItem("atsResumeData", JSON.stringify(resumeInfo));
+        }, 300);
+        return () => {
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        };
     }, [resumeInfo]);
 
     const resetResumeInfo = () => {

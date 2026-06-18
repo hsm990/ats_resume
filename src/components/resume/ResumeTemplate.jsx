@@ -1,6 +1,7 @@
+import React, { useMemo } from "react";
 import { textFR, textEN, fmt, toBullets } from "../../utils/resumeUtils";
 
-const ResumeTemplate = ({ personalInfo, experience, education, skills, projects, languages, summary, certifications, awards, references, customSections, resumeLanguage, templateId = 'template1' }) => {
+const ResumeTemplate = React.memo(({ personalInfo, experience, education, skills, projects, languages, summary, certifications, awards, references, customSections, resumeLanguage, templateId = 'template1' }) => {
     const t = resumeLanguage === 'fr' ? textFR : textEN;
 
     const pi = personalInfo || {};
@@ -14,167 +15,49 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
     const refs = references || [];
     const custs = customSections || [];
     const sum = summary || "";
-    const technicalSkills = (skls.technicalSkills || "").split(",").map(x => x.trim()).filter(Boolean);
-    const softSkills = (skls.softSkills || "").split(",").map(x => x.trim()).filter(Boolean);
+    const technicalSkills = useMemo(() => (skls.technicalSkills || "").split(",").map(x => x.trim()).filter(Boolean), [skls.technicalSkills]);
+    const softSkills = useMemo(() => (skls.softSkills || "").split(",").map(x => x.trim()).filter(Boolean), [skls.softSkills]);
 
     const isEmpty = !pi.fullName && exps.length === 0 && !sum && certs.length === 0 && awrds.length === 0 && refs.length === 0 && custs.length === 0 && edus.length === 0 && prjs.length === 0 && lngs.length === 0;
 
+    const styleTag = useMemo(() => `
+        .cv-paper { width: 210mm; min-height: 297mm; background: #ffffff; padding: 20mm; box-shadow: 0 1px 18px rgba(0,0,0,.10); color: #111; font-size: 11.5px; line-height: 1.45; word-wrap: break-word; overflow-wrap: break-word; box-sizing: border-box; margin: 0 auto;
+            ${templateId === 'template2' ? `font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;` : ''}
+            ${templateId === 'template3' ? `font-family: 'Courier New', Courier, monospace; letter-spacing: -0.2px;` : ''}
+            ${templateId === 'template1' || !templateId ? `font-family: 'Times New Roman', Times, Georgia, serif;` : ''}
+        }
+        .cv-name { font-size: 19px; font-weight: 700; margin: 0 0 1px; line-height: 1.15;
+            ${templateId === 'template2' ? `color: #1e3a8a; text-transform: uppercase; font-weight: 800;` : 'color: #000;'}
+            ${templateId === 'template3' ? `color: #333; letter-spacing: 2px; text-transform: uppercase;` : ''}
+        }
+        .cv-job-title { font-size: 12px; font-weight: 700; color: #111; margin: 0 0 4px;
+            ${templateId === 'template2' ? `color: #475569; font-size: 13px;` : ''}
+        }
+        .cv-section { margin-top: 14px; }
+        .cv-section h2.cv-section-title { font-size: 13.5px; font-weight: 700; padding-bottom: 2px; margin: 0 0 8px 0; text-transform: uppercase;
+            ${templateId === 'template2' ? `border-bottom: 2px solid #1e3a8a; color: #1e3a8a;` : ''}
+            ${templateId === 'template3' ? `border-bottom: 1px dashed #666; color: #222;` : ''}
+            ${templateId === 'template1' || !templateId ? `border-bottom: 1.5px solid #000; color: #000;` : ''}
+        }
+        .cv-summary { font-size: 11.5px; color: #111; line-height: 1.6; text-align: justify; }
+        .cv-exp-block { margin-bottom: 12px; }
+        .cv-exp-role { font-size: 12px; font-weight: 700; color: #000; margin-bottom: 2px; }
+        .cv-exp-meta { display: flex; justify-content: space-between; font-size: 11.5px; font-style: italic; color: #000; margin-bottom: 6px; }
+        ul.cv-list { margin: 0; padding-left: 18px; }
+        ul.cv-list li { font-size: 11.5px; color: #111; line-height: 1.6; margin-bottom: 3px; }
+        .cv-edu-block { margin-bottom: 10px; }
+        .cv-edu-degree { font-size: 12px; font-weight: 700; color: #000; margin-bottom: 2px; display: flex; justify-content: space-between; }
+        .cv-edu-school { font-size: 11.5px; color: #111; }
+        .cv-skills-category { font-size: 11.5px; line-height: 1.6; margin-bottom: 4px; }
+        .cv-proj-block { margin-bottom: 10px; }
+        .cv-proj-name { font-size: 12px; font-weight: 700; color: #000; margin-bottom: 2px; }
+        .cv-proj-link { font-size: 11px; color: #111; font-style: italic; margin-bottom: 4px; }
+        .cv-empty { display: flex; align-items: center; justify-content: center; height: 100%; min-height: 400px; color: #999; font-size: 16px; font-family: inherit; }
+    `, [templateId]);
+
     return (
         <>
-            <style>{`
-
-                .cv-paper {
-                    width: 210mm;
-                    min-height: 297mm;
-                    background: #ffffff;
-                    padding: 20mm;
-                    box-shadow: 0 1px 18px rgba(0,0,0,.10);
-                    color: #111;
-                    font-size: 11.5px;
-                    line-height: 1.45;
-                    word-wrap: break-word;
-                    overflow-wrap: break-word;
-                    box-sizing: border-box;
-                    margin: 0 auto;
-                    ${templateId === 'template2' ? `font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;` : ''}
-                    ${templateId === 'template3' ? `font-family: 'Courier New', Courier, monospace; letter-spacing: -0.2px;` : ''}
-                    ${templateId === 'template1' || !templateId ? `font-family: 'Times New Roman', Times, Georgia, serif;` : ''}
-                }
-
-                /* Header */
-                .cv-name {
-                    font-size: 19px;
-                    font-weight: 700;
-                    margin: 0 0 1px;
-                    line-height: 1.15;
-                    ${templateId === 'template2' ? `color: #1e3a8a; text-transform: uppercase; font-weight: 800;` : 'color: #000;'}
-                    ${templateId === 'template3' ? `color: #333; letter-spacing: 2px; text-transform: uppercase;` : ''}
-                }
-                .cv-job-title {
-                    font-size: 12px;
-                    font-weight: 700;
-                    color: #111;
-                    margin: 0 0 4px;
-                    ${templateId === 'template2' ? `color: #475569; font-size: 13px;` : ''}
-                }
-                .cv-header-row1 {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: baseline;
-                    font-size: 11px;
-                    color: #333;
-                    margin-bottom: 1px;
-                }
-                .cv-header-row2 {
-                    font-size: 11px;
-                    color: #333;
-                    margin-bottom: 0;
-                }
-                .cv-rule-thick {
-                    border: none;
-                    border-top: 1.5px solid #000;
-                    margin: 7px 0 0;
-                }
-
-                /* Sections */
-                .cv-section { margin-top: 14px; }
-                .cv-section h2.cv-section-title {
-                    font-size: 13.5px;
-                    font-weight: 700;
-                    padding-bottom: 2px;
-                    margin: 0 0 8px 0;
-                    text-transform: uppercase;
-                    ${templateId === 'template2' ? `border-bottom: 2px solid #1e3a8a; color: #1e3a8a;` : ''}
-                    ${templateId === 'template3' ? `border-bottom: 1px dashed #666; color: #222;` : ''}
-                    ${templateId === 'template1' || !templateId ? `border-bottom: 1.5px solid #000; color: #000;` : ''}
-                }
-
-                /* Summary */
-                .cv-summary {
-                    font-size: 11.5px;
-                    color: #111;
-                    line-height: 1.6;
-                    text-align: justify;
-                }
-
-                /* Experience */
-                .cv-exp-block { margin-bottom: 12px; }
-                .cv-exp-role {
-                    font-size: 12px;
-                    font-weight: 700;
-                    color: #000;
-                    margin-bottom: 2px;
-                }
-                .cv-exp-meta {
-                    display: flex;
-                    justify-content: space-between;
-                    font-size: 11.5px;
-                    font-style: italic;
-                    color: #000;
-                    margin-bottom: 6px;
-                }
-                
-                /* Lists (ATS friendly) */
-                ul.cv-list {
-                    margin: 0;
-                    padding-left: 18px;
-                }
-                ul.cv-list li {
-                    font-size: 11.5px;
-                    color: #111;
-                    line-height: 1.6;
-                    margin-bottom: 3px;
-                }
-
-                /* Education */
-                .cv-edu-block { margin-bottom: 10px; }
-                .cv-edu-degree {
-                    font-size: 12px;
-                    font-weight: 700;
-                    color: #000;
-                    margin-bottom: 2px;
-                    display: flex;
-                    justify-content: space-between;
-                }
-                .cv-edu-school {
-                    font-size: 11.5px;
-                    color: #111;
-                }
-
-                /* Skills */
-                .cv-skills-category {
-                    font-size: 11.5px;
-                    line-height: 1.6;
-                    margin-bottom: 4px;
-                }
-
-                /* Projects */
-                .cv-proj-block { margin-bottom: 10px; }
-                .cv-proj-name {
-                    font-size: 12px;
-                    font-weight: 700;
-                    color: #000;
-                    margin-bottom: 2px;
-                }
-                .cv-proj-link {
-                    font-size: 11px;
-                    color: #111;
-                    font-style: italic;
-                    margin-bottom: 4px;
-                }
-
-                /* Empty state */
-                .cv-empty {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    height: 100%;
-                    min-height: 400px;
-                    color: #999;
-                    font-size: 16px;
-                    font-family: inherit;
-                }
-            `}</style>
+            <style>{styleTag}</style>
 
             <div className="cv-paper" id="cv-print-area">
                 {isEmpty ? (
@@ -371,6 +254,6 @@ const ResumeTemplate = ({ personalInfo, experience, education, skills, projects,
             </div>
         </>
     );
-};
+});
 
 export default ResumeTemplate;

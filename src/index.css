@@ -32,3 +32,5 @@ body {
 .MuiSvgIcon-root {
   color: var(--text-primary) !important;
 }
+
+@keyframes ai-spin { to { transform: rotate(360deg); } }

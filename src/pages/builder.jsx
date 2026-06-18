@@ -52,17 +52,6 @@ const Builder = () => {
     const [atsLoading, setAtsLoading] = useState(false);
     const [atsResult, setAtsResult] = useState(null);
     const [toastError, setToastError] = useState("");
-    const [saved, setSaved] = useState(false);
-    const prevDataRef = useRef(resumeInfo);
-
-    useEffect(() => {
-        if (prevDataRef.current !== resumeInfo) {
-            setSaved(true);
-            const timer = setTimeout(() => setSaved(false), 2000);
-            prevDataRef.current = resumeInfo;
-            return () => clearTimeout(timer);
-        }
-    }, [resumeInfo]);
 
     const showError = (msg) => {
         setToastError(msg);
@@ -85,6 +74,18 @@ const Builder = () => {
         addReference, removeReference, updateReference,
         addCustomSection, removeCustomSection, updateCustomSection,
     } = useContext(InfoContext);
+
+    const [saved, setSaved] = useState(false);
+    const prevDataRef = useRef(resumeInfo);
+
+    useEffect(() => {
+        if (prevDataRef.current !== resumeInfo) {
+            setSaved(true);
+            const timer = setTimeout(() => setSaved(false), 2000);
+            prevDataRef.current = resumeInfo;
+            return () => clearTimeout(timer);
+        }
+    }, [resumeInfo]);
 
     const pi = resumeInfo.personalInfo || {};
     const exps = resumeInfo.experience || [];
